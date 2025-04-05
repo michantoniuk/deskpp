@@ -1,13 +1,15 @@
 #include "widok_rezerwacji.h"
 #include "dialog_rezerwacji.h"
+#include "komunikacja_klienta.h"
 #include <QMainWindow>
 #include <QVBoxLayout>
 #include <QGroupBox>
 #include <QMessageBox>
 #include <QScrollArea>
 #include <QStatusBar>
+#include <iostream>
 
-WidokRezerwacji::WidokRezerwacji(QWidget* parent)
+WidokRezerwacji::WidokRezerwacji(QWidget* parent, const std::string& adresSerwera, int port)
     : QMainWindow(parent),
       centralnyWidget(new QWidget(this)),
       kalendarz(new QCalendarWidget(this)),
@@ -16,6 +18,7 @@ WidokRezerwacji::WidokRezerwacji(QWidget* parent)
       etykietaInfo(new QLabel(this)),
       ukladMapyBiurek(new QGridLayout()),
       kontenerMapyBiurek(new QWidget(this)),
+      komunikacja(adresSerwera, port), // Użyj przekazanego adresu i portu
       wybranyBudynek(1),
       wybranePietro(1),
       wybranaData(QDate::currentDate()) {
@@ -31,21 +34,44 @@ WidokRezerwacji::WidokRezerwacji(QWidget* parent)
     setWindowTitle("Biurko++ - System Rezerwacji Biurek");
     resize(800, 600);
 
-    // Pokaż informację w pasku statusu
-    statusBar()->showMessage("Wybierz biurko, aby zobaczyć szczegóły lub dokonać rezerwacji", 5000);
-
-    // Inicjalne wypełnienie mapy biurek
-    zmianaBudynku(0);
+    // Sprawdź połączenie z serwerem i wyświetl odpowiednią informację
+    if (komunikacja.isConnected()) {
+        statusBar()->showMessage("Połączono z serwerem. Wybierz biurko, aby zobaczyć szczegóły lub dokonać rezerwacji", 5000);
+        // Inicjalne wypełnienie mapy biurek
+        zmianaBudynku(0);
+    } else {
+        QString errorMsg = "Nie można połączyć się z serwerem. Sprawdź, czy serwer jest uruchomiony.";
+        statusBar()->showMessage(errorMsg, 0); // Pokazuj komunikat aż do odwołania
+        QMessageBox::critical(this, "Błąd połączenia",
+            errorMsg + "\nAplikacja będzie działać w trybie offline z ograniczoną funkcjonalnością.");
+    }
 }
 
 void WidokRezerwacji::zmianaBudynku(int indeks) {
     wybranyBudynek = indeks + 1;
 
-    // Pobierz biurka dla wybranego budynku
-    biurka = generujBiurka(wybranyBudynek);
+    try {
+        // Sprawdź połączenie przed pobraniem danych
+        if (!komunikacja.isConnected() && !komunikacja.testConnection()) {
+            statusBar()->showMessage("Nie można połączyć się z serwerem. Działanie w trybie offline.", 5000);
+            QMessageBox::warning(this, "Błąd komunikacji", "Nie można połączyć się z serwerem.");
+            return;
+        }
 
-    // Zaktualizuj mapę biurek
-    aktualizujMapeBiurek();
+        // Pobierz biurka dla wybranego budynku z serwera
+        biurka = pobierzBiurkaZSerwera(wybranyBudynek);
+
+        // Zaktualizuj mapę biurek
+        aktualizujMapeBiurek();
+
+        statusBar()->showMessage(QString("Załadowano %1 biurek z serwera").arg(biurka.size()), 3000);
+    }
+    catch (const std::exception& e) {
+        QString errorMsg = QString("Błąd podczas pobierania danych z serwera: %1").arg(e.what());
+        statusBar()->showMessage(errorMsg, 5000);
+        QMessageBox::warning(this, "Błąd komunikacji", errorMsg);
+        std::cerr << "Błąd: " << e.what() << std::endl;
+    }
 }
 
 void WidokRezerwacji::zmianaData(const QDate& data) {
@@ -53,7 +79,7 @@ void WidokRezerwacji::zmianaData(const QDate& data) {
     etykietaInfo->setText(QString("Plan biur na dzień %1").arg(data.toString("dd.MM.yyyy")));
 
     // Odśwież widok biurek, bo dostępność może się zmieniać w zależności od daty
-    aktualizujMapeBiurek();
+    odswiezWidok();
 }
 
 void WidokRezerwacji::klikniecieBiurka() {
@@ -66,17 +92,46 @@ void WidokRezerwacji::klikniecieBiurka() {
     int indeksBiurka = przycisk->property("indeks").toInt(&ok);
     if (!ok || indeksBiurka < 0 || indeksBiurka >= static_cast<int>(biurka.size())) return;
 
+    // Sprawdź połączenie przed otwarciem dialogu
+    if (!komunikacja.isConnected() && !komunikacja.testConnection()) {
+        QMessageBox::warning(this, "Brak połączenia",
+            "Nie można wykonać operacji rezerwacji bez połączenia z serwerem.");
+        return;
+    }
+
     // Otwórz dialog rezerwacji dla tego biurka
-    DialogRezerwacji dialog(biurka[indeksBiurka], wybranaData, this);
+    DialogRezerwacji dialog(biurka[indeksBiurka], wybranaData, komunikacja, this);
     dialog.exec();
 
-    // Po zamknięciu dialogu odśwież widok
+    // Po zamknięciu dialogu odśwież widok, pobierając dane z serwera
     odswiezWidok();
 }
 
 void WidokRezerwacji::odswiezWidok() {
-    // Odśwież widok biurek
-    aktualizujMapeBiurek();
+    // Sprawdź połączenie przed próbą pobrania danych
+    if (!komunikacja.isConnected()) {
+        if (komunikacja.testConnection()) {
+            statusBar()->showMessage("Połączono z serwerem. Odświeżanie danych...", 3000);
+        } else {
+            statusBar()->showMessage("Nie można połączyć się z serwerem. Działanie w trybie offline.", 5000);
+            return;
+        }
+    }
+
+    // Pobierz zaktualizowane dane z serwera
+    try {
+        biurka = pobierzBiurkaZSerwera(wybranyBudynek);
+
+        // Aktualizuj mapę biurek
+        aktualizujMapeBiurek();
+
+        statusBar()->showMessage("Dane odświeżone pomyślnie", 3000);
+    }
+    catch (const std::exception& e) {
+        QString errorMsg = QString("Błąd podczas odświeżania danych: %1").arg(e.what());
+        statusBar()->showMessage(errorMsg, 5000);
+        QMessageBox::warning(this, "Błąd komunikacji", errorMsg);
+    }
 }
 
 void WidokRezerwacji::inicjalizujUI() {
@@ -128,6 +183,11 @@ void WidokRezerwacji::inicjalizujUI() {
     auto grupaPanelMapa = new QGroupBox("Mapa biurek", this);
     auto ukladMapa = new QVBoxLayout(grupaPanelMapa);
 
+    // Dodaj przycisk odświeżania
+    auto przyciskOdswiez = new QPushButton("Odśwież dane", this);
+    connect(przyciskOdswiez, &QPushButton::clicked, this, &WidokRezerwacji::odswiezWidok);
+    ukladMapa->addWidget(przyciskOdswiez);
+
     // Utwórz kontener mapy biurek
     kontenerMapyBiurek->setLayout(ukladMapyBiurek);
 
@@ -140,31 +200,42 @@ void WidokRezerwacji::inicjalizujUI() {
     ukladGlowny->addWidget(grupaPanelMapa, 1); // Ustaw stretch, aby mapa zajmowała więcej miejsca
 }
 
-std::vector<Biurko> WidokRezerwacji::generujBiurka(int idBudynku) {
+std::vector<Biurko> WidokRezerwacji::pobierzBiurkaZSerwera(int idBudynku) {
+    std::cout << "Pobieranie biurek z serwera dla budynku " << idBudynku << std::endl;
+
+    // Pobierz dane z serwera za pomocą KomunikacjaKlienta
+    std::vector<json> biurkaJson = komunikacja.pobierzBiurka(idBudynku);
+
+    std::cout << "Otrzymano " << biurkaJson.size() << " biurek z serwera" << std::endl;
+
     std::vector<Biurko> biurka;
 
-    // Generowanie przykładowych biurek dla budynku Kraków A
-    if (idBudynku == 1) {
-        biurka.emplace_back(1, "KrakA-01-001", 1, 1);
-        biurka.emplace_back(2, "KrakA-01-002", 1, 1);
-        biurka.emplace_back(3, "KrakA-01-003", 1, 1, false);
-        biurka.emplace_back(4, "KrakA-01-004", 1, 1);
-        biurka.emplace_back(5, "KrakA-01-005", 1, 1);
-        biurka.emplace_back(6, "KrakA-01-006", 1, 1);
-        biurka.emplace_back(7, "KrakA-01-007", 1, 1, false);
-        biurka.emplace_back(8, "KrakA-01-008", 1, 1);
-        biurka.emplace_back(9, "KrakA-01-009", 1, 1);
-    }
+    // Konwertuj dane JSON na obiekty Biurko
+    for (const auto& biurkoJson : biurkaJson) {
+        std::cout << "Przetwarzanie biurka: " << biurkoJson.dump() << std::endl;
 
-    // Generowanie przykładowych biurek dla budynku Warszawa B
-    else if (idBudynku == 2) {
-        biurka.emplace_back(10, "WawB-01-001", 2, 1);
-        biurka.emplace_back(11, "WawB-01-002", 2, 1);
-        biurka.emplace_back(12, "WawB-01-003", 2, 1);
-        biurka.emplace_back(13, "WawB-01-004", 2, 1);
+        int id = biurkoJson.contains("id") ? biurkoJson["id"].get<int>() : 0;
+        std::string etykieta = biurkoJson.contains("etykieta") ? biurkoJson["etykieta"].get<std::string>() : "Nieznane";
+        int idBudynku = biurkoJson.contains("idBudynku") ? biurkoJson["idBudynku"].get<int>() : 0;
+        int numerPietra = biurkoJson.contains("numerPietra") ? biurkoJson["numerPietra"].get<int>() : 0;
+        bool dostepne = biurkoJson.contains("dostepne") ? biurkoJson["dostepne"].get<bool>() : true;
 
-        // Ustawienie jednego biurka jako niedostępne
-        biurka[1].ustawDostepnosc(false);
+        Biurko biurko(id, etykieta, idBudynku, numerPietra, dostepne);
+
+        // Sprawdź, czy biurko jest zarezerwowane
+        if (biurkoJson.contains("zarezerwowane") && biurkoJson["zarezerwowane"].get<bool>()) {
+            // Jeśli zawiera datę, ustaw ją
+            if (biurkoJson.contains("dataRezerwacji") && !biurkoJson["dataRezerwacji"].is_null()) {
+                std::string dataStr = biurkoJson["dataRezerwacji"].get<std::string>();
+                QDate date = QDate::fromString(QString::fromStdString(dataStr), "yyyy-MM-dd");
+                biurko.zarezerwuj(date);
+            } else {
+                // Brak daty, używamy dzisiejszej daty
+                biurko.zarezerwuj(QDate::currentDate());
+            }
+        }
+
+        biurka.push_back(biurko);
     }
 
     return biurka;
