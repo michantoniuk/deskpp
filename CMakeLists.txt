@@ -1,113 +1,176 @@
 cmake_minimum_required(VERSION 3.14)
-project(BiurkoPP VERSION 0.1.0 LANGUAGES CXX)
+project(DeskPP LANGUAGES CXX)
 
-# Ustawienia C++
+# Set policy for DOWNLOAD_EXTRACT_TIMESTAMP to avoid warning
+if (POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW)
+endif ()
+
+# Compilation settings
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Dołącz katalog src do ścieżki include
-include_directories(${CMAKE_SOURCE_DIR})
+# Dependencies for both client and server
+include(FetchContent)
 
-# Znajdź Boost - potrzebny dla Crow i komunikacji klienta
-find_package(Boost 1.71.0 REQUIRED COMPONENTS system)
-include_directories(${Boost_INCLUDE_DIRS})
-
-# Znajdź nlohmann/json (zakładamy, że jest zainstalowany systemowo lub przez vcpkg)
-find_package(nlohmann_json CONFIG REQUIRED)
-
-# Znajdź spdlog
-find_package(spdlog REQUIRED)
-
-# Znajdź Crow - można zainstalować przez vcpkg lub pobrać ręcznie
-find_package(Crow CONFIG QUIET)
-if (NOT Crow_FOUND)
-    # Jeśli Crow nie jest zainstalowany systemowo, pobierzmy go z GitHuba
-    include(FetchContent)
-    FetchContent_Declare(
-            Crow
-            GIT_REPOSITORY https://github.com/CrowCpp/Crow.git
-            GIT_TAG v1.0
-    )
-    FetchContent_MakeAvailable(Crow)
-endif()
-
-# Pliki źródłowe dla klienta
-set(CLIENT_SOURCES
-        src/client/main_client.cpp
-        src/client/komunikacja_klienta.cpp
-        src/client/widok_rezerwacji.cpp
-        src/client/dialog_rezerwacji.cpp
-        src/common/biurko.cpp
+# nlohmann/json (both client and server)
+FetchContent_Declare(json
+        URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
+FetchContent_MakeAvailable(json)
 
-# Pliki nagłówkowe dla klienta
-set(CLIENT_HEADERS
-        src/client/komunikacja_klienta.h
-        src/client/widok_rezerwacji.h
-        src/client/dialog_rezerwacji.h
-        src/common/biurko.h
+# spdlog (both client and server)
+FetchContent_Declare(spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG v1.11.0
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
+FetchContent_MakeAvailable(spdlog)
 
-# Pliki źródłowe dla serwera (mocno uproszczone!)
-set(SERVER_SOURCES
-        src/server/main_server.cpp
-        src/server/kontroler_serwera.cpp
-)
-
-# Pliki nagłówkowe dla serwera (mocno uproszczone!)
-set(SERVER_HEADERS
-        src/server/kontroler_serwera.h
-        src/server/logger.h
-)
-
-# Znajdź pakiet Qt dla klienta
-find_package(Qt6 COMPONENTS Core Widgets QUIET)
-if (NOT Qt6_FOUND)
-    find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
-    set(QT_VERSION 5)
-else()
-    set(QT_VERSION 6)
-endif()
-
-# Automatyczna obsługa plików Qt
+# Client-specific dependencies
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
 set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
 
-# Utwórz plik wykonywalny dla klienta
-add_executable(biurkopp_client ${CLIENT_SOURCES} ${CLIENT_HEADERS})
+# Boost (client-only)
+FetchContent_Declare(boost_beast
+        GIT_REPOSITORY https://github.com/boostorg/beast.git
+        GIT_TAG boost-1.79.0
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+FetchContent_Declare(boost_asio
+        GIT_REPOSITORY https://github.com/boostorg/asio.git
+        GIT_TAG boost-1.79.0
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+FetchContent_MakeAvailable(boost_beast boost_asio)
 
-# Utwórz plik wykonywalny dla serwera
-add_executable(biurkopp_server ${SERVER_SOURCES} ${SERVER_HEADERS})
+# Server-specific dependencies
+# Fix SQLite3 dependency - use find_package properly
+find_package(SQLite3 REQUIRED)
+if (NOT SQLite3_FOUND)
+    message(FATAL_ERROR "SQLite3 library not found!")
+endif ()
 
-# Linkowanie z Qt (wersja zależna od tego, co znaleziono)
-if(QT_VERSION EQUAL 6)
-    target_link_libraries(biurkopp_client PRIVATE
-            Qt6::Core
-            Qt6::Widgets
-    )
-else()
-    target_link_libraries(biurkopp_client PRIVATE
-            Qt5::Core
-            Qt5::Widgets
-    )
-endif()
+FetchContent_Declare(crow
+        GIT_REPOSITORY https://github.com/CrowCpp/Crow.git
+        GIT_TAG v1.0+5
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+FetchContent_MakeAvailable(crow)
 
-# Linkowanie bibliotek dla serwera (uproszczone)
-target_link_libraries(biurkopp_server PRIVATE
-        ${Boost_LIBRARIES}
+# Include paths
+include_directories(
+        ${CMAKE_SOURCE_DIR}/src
+        ${boost_beast_SOURCE_DIR}/include
+        ${boost_asio_SOURCE_DIR}/include
+        ${crow_SOURCE_DIR}/include
+)
+
+# CLIENT FILES
+set(CLIENT_MODEL_FILES
+        src/client/model/booking.h
+        src/client/model/booking.cpp
+        src/client/model/desk.h
+        src/client/model/desk.cpp
+)
+
+set(CLIENT_UI_FILES
+        src/client/ui/booking_view.h
+        src/client/ui/booking_view.cpp
+        src/client/ui/booking_dialog.h
+        src/client/ui/booking_dialog.cpp
+)
+
+set(CLIENT_NET_FILES
+        src/client/net/client_communication.h
+        src/client/net/client_communication.cpp
+)
+
+set(CLIENT_UTIL_FILES
+        src/client/util/logger.h
+        src/client/util/cmd_args.h
+        src/client/util/client_error.h
+)
+
+set(CLIENT_SOURCES
+        src/client/main.cpp
+        ${CLIENT_MODEL_FILES}
+        ${CLIENT_UI_FILES}
+        ${CLIENT_NET_FILES}
+        ${CLIENT_UTIL_FILES}
+)
+
+# SERVER FILES
+set(SERVER_MODEL_FILES
+        src/server/model/booking.h
+        src/server/model/booking.cpp
+        src/server/model/desk.h
+        src/server/model/desk.cpp
+        src/server/model/building.h
+        src/server/model/building.cpp
+)
+
+set(SERVER_DB_FILES
+        src/server/db/database.h
+        src/server/db/database.cpp
+)
+
+set(SERVER_REPOSITORY_FILES
+        src/server/repository/booking_repository.h
+        src/server/repository/booking_repository.cpp
+        src/server/repository/desk_repository.h
+        src/server/repository/desk_repository.cpp
+        src/server/repository/building_repository.h
+        src/server/repository/building_repository.cpp
+)
+
+set(SERVER_API_FILES
+        src/server/api/booking_controller.h
+        src/server/api/booking_controller.cpp
+        src/server/api/routing.h
+        src/server/api/routing.cpp
+)
+
+set(SERVER_SERVICE_FILES
+        src/server/service/booking_service.h
+        src/server/service/booking_service.cpp
+)
+
+set(SERVER_UTIL_FILES
+        src/server/util/logger.h
+        src/server/util/cmd_args.h
+        src/server/util/date_helper.h
+        src/server/util/date_helper.cpp
+)
+
+set(SERVER_SOURCES
+        src/server/main.cpp
+        ${SERVER_MODEL_FILES}
+        ${SERVER_DB_FILES}
+        ${SERVER_REPOSITORY_FILES}
+        ${SERVER_API_FILES}
+        ${SERVER_SERVICE_FILES}
+        ${SERVER_UTIL_FILES}
+)
+
+# Build targets
+add_executable(deskpp_client ${CLIENT_SOURCES})
+target_link_libraries(deskpp_client PRIVATE
+        Qt6::Core
+        Qt6::Widgets
         nlohmann_json::nlohmann_json
         spdlog::spdlog
-        Crow::Crow
-        pthread
 )
 
-# Linkowanie bibliotek dla klienta
-target_link_libraries(biurkopp_client PRIVATE
-        ${Boost_LIBRARIES}
+add_executable(deskpp_server ${SERVER_SOURCES})
+target_link_libraries(deskpp_server PRIVATE
         nlohmann_json::nlohmann_json
+        ${SQLite3_LIBRARIES}  # Use the correct variable name for SQLite3
+        spdlog::spdlog
 )
 
-# Dodaj komunikat o wersji Qt
-message(STATUS "Building with Qt${QT_VERSION}")
+# Add include directories for SQLite3
+target_include_directories(deskpp_server PRIVATE ${SQLite3_INCLUDE_DIRS})
