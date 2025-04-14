@@ -181,6 +181,20 @@ bool Database::initializeSchema() {
             ");"
         );
     }
+
+    if (success) {
+        success = execute(
+            "CREATE TABLE IF NOT EXISTS users ("
+            "    id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "    username TEXT NOT NULL UNIQUE,"
+            "    password_hash TEXT NOT NULL,"
+            "    email TEXT NOT NULL UNIQUE,"
+            "    full_name TEXT,"
+            "    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+            ");"
+        );
+    }
+
     if (success) {
         success = execute(
             "CREATE TABLE IF NOT EXISTS bookings ("
@@ -189,7 +203,8 @@ bool Database::initializeSchema() {
             "    user_id INTEGER NOT NULL,"
             "    date TEXT NOT NULL,"
             "    date_to TEXT NOT NULL,"
-            "    FOREIGN KEY (desk_id) REFERENCES desks(id) ON DELETE CASCADE"
+            "    FOREIGN KEY (desk_id) REFERENCES desks(id) ON DELETE CASCADE,"
+            "    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
             ");"
         );
     }
@@ -268,6 +283,30 @@ bool Database::seedDemoData() {
             return false;
         }
         LOG_INFO("Added sample desks to database");
+    }
+
+    // Check if users table has data
+    bool hasUsersData = false;
+    query("SELECT COUNT(*) as count FROM users", [&hasUsersData](std::map<std::string, std::string> row) {
+        hasUsersData = std::stoi(row["count"]) > 0;
+    });
+
+    // Add users if table is empty
+    if (!hasUsersData) {
+        // Add some demo users - password is "password" hashed with our simple hash function
+        success = execute(
+            "INSERT INTO users (username, password_hash, email, full_name) VALUES "
+            "('admin', '5199103695992879776', 'admin@example.com', 'Admin User'),"
+            "('user1', '5199103695992879776', 'user1@example.com', 'Regular User'),"
+            "('user2', '5199103695992879776', 'user2@example.com', 'Another User');"
+        );
+
+        if (!success) {
+            execute("ROLLBACK;");
+            LOG_ERROR("Error adding sample users");
+            return false;
+        }
+        LOG_INFO("Added sample users to database");
     }
 
     // Commit changes if everything succeeded

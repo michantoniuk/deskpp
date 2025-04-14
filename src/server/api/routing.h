@@ -3,7 +3,8 @@
 
 #include <crow.h>
 #include "booking_controller.h"
+#include "user_controller.h"
 
-void registerRoutes(crow::SimpleApp &app, BookingController &controller);
+void registerRoutes(crow::SimpleApp &app, BookingController &bookingController, UserController &userController);
 
 #endif // ROUTING_H

@@ -7,6 +7,7 @@
 #include "net/client_communication.h"
 #include "util/logger.h"
 #include "util/cmd_args.h"
+#include "model/user.h"
 
 int main(int argc, char *argv[]) {
     QApplication application(argc, argv);
@@ -79,6 +80,18 @@ int main(int argc, char *argv[]) {
         int result = msgBox.exec();
         if (result == QMessageBox::No) {
             return 1;
+        }
+    } else {
+        // Try auto-login if username and password are provided
+        if (args.autoLogin && !args.username.empty() && !args.password.empty()) {
+            LOG_INFO("Attempting auto-login with username: {}", args.username);
+
+            auto user = communication.loginUser(args.username, args.password);
+            if (user) {
+                LOG_INFO("Auto-login successful for user: {}", user->getUsername());
+            } else {
+                LOG_WARNING("Auto-login failed for user: {}", args.username);
+            }
         }
     }
 

@@ -245,7 +245,16 @@ void BookingDialog::bookDesk() {
         return;
     }
 
-    const int userId = 1; // Default user ID
+    // Get the current user's ID
+    int userId = 1; // Default user ID as fallback
+
+    auto currentUser = _communication.getCurrentUser();
+    if (currentUser) {
+        userId = currentUser->getId();
+        LOG_INFO("Using logged-in user ID: {}", userId);
+    } else {
+        LOG_WARNING("No logged-in user found, using default user ID: {}", userId);
+    }
 
     bool success = _communication.addBooking(_desk.getId(), userId, dateFromStr, dateToStr);
     if (success) {

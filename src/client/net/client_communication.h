@@ -3,10 +3,12 @@
 
 #include <string>
 #include <vector>
+#include <optional>
 #include <boost/asio/io_context.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <nlohmann/json.hpp>
+#include "../model/user.h"
 
 namespace beast = boost::beast;
 namespace http = beast::http;
@@ -31,6 +33,20 @@ public:
 
     bool cancelBooking(int bookingId);
 
+    // User-related methods
+    std::optional<User> registerUser(const std::string &username, const std::string &password,
+                                     const std::string &email, const std::string &fullName);
+
+    std::optional<User> loginUser(const std::string &username, const std::string &password);
+
+    std::optional<User> getCurrentUser() const;
+
+    void setCurrentUser(const User &user);
+
+    void logoutUser();
+
+    bool isLoggedIn() const;
+
 private:
     json executeRequest(http::verb method,
                         const std::string &endpoint,
@@ -40,6 +56,9 @@ private:
     int _port;
     net::io_context _io_context;
     bool _connected;
+
+    // Current logged-in user
+    std::optional<User> _currentUser;
 };
 
 #endif // CLIENT_COMMUNICATION_H

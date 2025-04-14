@@ -7,9 +7,14 @@
 #include <QLabel>
 #include <QGridLayout>
 #include <QPushButton>
+#include <QMenuBar>
+#include <QMenu>
+#include <QAction>
 #include <QDate>
+#include <QTimer>
 #include <vector>
 #include "../model/desk.h"
+#include "../model/user.h"
 #include "../net/client_communication.h"
 
 class BookingView : public QMainWindow {
@@ -31,8 +36,19 @@ private slots:
 
     void refreshView();
 
+    // User-related slots
+    void showLoginDialog();
+
+    void handleUserLogin(const User &user);
+
+    void handleUserLogout();
+
+    void updateUserInterface();
+
 private:
     void initializeUI();
+
+    void initializeMenus();
 
     void updateDeskMap();
 
@@ -43,6 +59,7 @@ private:
     QComboBox *selectBuilding;
     QComboBox *selectFloor;
     QLabel *infoLabel;
+    QLabel *userInfoLabel;
 
     QGridLayout *deskMapLayout;
     QWidget *deskMapContainer;
@@ -56,6 +73,12 @@ private:
     int selectedBuilding;
     int selectedFloor;
     QDate selectedDate;
+
+    // Menu items
+    QMenu *userMenu;
+    QAction *loginAction;
+    QAction *logoutAction;
+    QAction *userProfileAction;
 };
 
 #endif // BOOKING_VIEW_H

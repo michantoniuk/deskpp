@@ -185,3 +185,84 @@ bool ClientCommunication::cancelBooking(int bookingId) {
 bool ClientCommunication::isConnected() const {
     return _connected;
 }
+
+// User-related methods
+std::optional<User> ClientCommunication::registerUser(const std::string &username, const std::string &password,
+                                                      const std::string &email, const std::string &fullName) {
+    LOG_INFO("Registering user: username={}, email={}", username, email);
+
+    const json data = {
+        {"username", username},
+        {"password", password},
+        {"email", email},
+        {"fullName", fullName}
+    };
+
+    json response = executeRequest(http::verb::post, "/api/users/register", data);
+
+    if (response.contains("status") && response["status"] == "success" &&
+        response.contains("user") && !response["user"].is_null()) {
+        std::string userJson = response["user"].dump();
+        User user = User::fromJson(userJson);
+
+        LOG_INFO("User registered successfully: id={}", user.getId());
+
+        // Set as current user
+        _currentUser = user;
+
+        return user;
+    } else {
+        std::string errorMsg = response.contains("message")
+                                   ? response["message"].get<std::string>()
+                                   : "Unknown error";
+        LOG_ERROR("Error registering user: {}", errorMsg);
+        return std::nullopt;
+    }
+}
+
+std::optional<User> ClientCommunication::loginUser(const std::string &username, const std::string &password) {
+    LOG_INFO("Logging in user: username={}", username);
+
+    const json data = {
+        {"username", username},
+        {"password", password}
+    };
+
+    json response = executeRequest(http::verb::post, "/api/users/login", data);
+
+    if (response.contains("status") && response["status"] == "success" &&
+        response.contains("user") && !response["user"].is_null()) {
+        std::string userJson = response["user"].dump();
+        User user = User::fromJson(userJson);
+
+        LOG_INFO("User logged in successfully: id={}", user.getId());
+
+        // Set as current user
+        _currentUser = user;
+
+        return user;
+    } else {
+        std::string errorMsg = response.contains("message")
+                                   ? response["message"].get<std::string>()
+                                   : "Unknown error";
+        LOG_ERROR("Error logging in user: {}", errorMsg);
+        return std::nullopt;
+    }
+}
+
+std::optional<User> ClientCommunication::getCurrentUser() const {
+    return _currentUser;
+}
+
+void ClientCommunication::setCurrentUser(const User &user) {
+    _currentUser = user;
+}
+
+void ClientCommunication::logoutUser() {
+    LOG_INFO("User logged out");
+    _currentUser = std::nullopt;
+}
+
+bool ClientCommunication::isLoggedIn() const {
+    return _currentUser.has_value();
+}

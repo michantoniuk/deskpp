@@ -3,11 +3,14 @@
 #include <crow.h>
 #include "db/database.h"
 #include "api/booking_controller.h"
+#include "api/user_controller.h"
 #include "api/routing.h"
 #include "service/booking_service.h"
+#include "service/user_service.h"
 #include "repository/booking_repository.h"
 #include "repository/desk_repository.h"
 #include "repository/building_repository.h"
+#include "repository/user_repository.h"
 #include "util/logger.h"
 #include "util/cmd_args.h"
 
@@ -44,18 +47,21 @@ int main(int argc, char *argv[]) {
         BookingRepository bookingRepo(db);
         DeskRepository deskRepo(db);
         BuildingRepository buildingRepo(db);
+        UserRepository userRepo(db);
 
-        // Initialize service
+        // Initialize services
         BookingService bookingService(bookingRepo, deskRepo, buildingRepo);
+        UserService userService(userRepo);
 
-        // Initialize controller
+        // Initialize controllers
         BookingController bookingController(bookingService);
+        UserController userController(userService);
 
         // Initialize Crow server
         crow::SimpleApp app;
 
         // Register API routes
-        registerRoutes(app, bookingController);
+        registerRoutes(app, bookingController, userController);
 
         // Start server
         LOG_INFO("Server started and listening on port {}", args.port);

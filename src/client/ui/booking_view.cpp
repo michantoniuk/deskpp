@@ -1,5 +1,6 @@
 #include "booking_view.h"
 #include "booking_dialog.h"
+#include "login_dialog.h"
 #include "../net/client_communication.h"
 #include <QMainWindow>
 #include <QVBoxLayout>
@@ -7,6 +8,7 @@
 #include <QMessageBox>
 #include <QScrollArea>
 #include <QStatusBar>
+#include <QMenuBar>
 #include <iostream>
 #include "../util/logger.h"
 
@@ -18,6 +20,7 @@ BookingView::BookingView(QWidget *parent)
       selectBuilding(new QComboBox(this)),
       selectFloor(new QComboBox(this)),
       infoLabel(new QLabel(this)),
+      userInfoLabel(new QLabel(this)),
       deskMapLayout(new QGridLayout()),
       deskMapContainer(new QWidget(this)),
       communication(*(new ClientCommunication())), // Create a new instance on the heap
@@ -30,12 +33,16 @@ BookingView::BookingView(QWidget *parent)
 
     setCentralWidget(centralWidget);
     initializeUI();
+    initializeMenus();
 
     connect(calendar, &QCalendarWidget::clicked, this, &BookingView::dateChanged);
     connect(selectBuilding, &QComboBox::currentIndexChanged, this, &BookingView::buildingChanged);
 
     setWindowTitle("DeskPP - Desk Booking System");
     resize(800, 600);
+
+    // Show login dialog automatically on startup if not logged in
+    QTimer::singleShot(500, this, &BookingView::showLoginDialog);
 
     if (communication.isConnected()) {
         statusBar()->showMessage("Connected to server. Select a desk to view details or make a booking", 5000);
@@ -56,6 +63,7 @@ BookingView::BookingView(QWidget *parent, ClientCommunication &comm)
       selectBuilding(new QComboBox(this)),
       selectFloor(new QComboBox(this)),
       infoLabel(new QLabel(this)),
+      userInfoLabel(new QLabel(this)),
       deskMapLayout(new QGridLayout()),
       deskMapContainer(new QWidget(this)),
       communication(comm), // Use the passed instance
@@ -65,12 +73,16 @@ BookingView::BookingView(QWidget *parent, ClientCommunication &comm)
       selectedDate(QDate::currentDate()) {
     setCentralWidget(centralWidget);
     initializeUI();
+    initializeMenus();
 
     connect(calendar, &QCalendarWidget::clicked, this, &BookingView::dateChanged);
     connect(selectBuilding, &QComboBox::currentIndexChanged, this, &BookingView::buildingChanged);
 
     setWindowTitle("DeskPP - Desk Booking System");
     resize(800, 600);
+
+    // Show login dialog automatically on startup if not logged in
+    QTimer::singleShot(500, this, &BookingView::showLoginDialog);
 
     if (communication.isConnected()) {
         statusBar()->showMessage("Connected to server. Select a desk to view details or make a booking", 5000);
@@ -132,6 +144,14 @@ void BookingView::deskClicked() {
         return;
     }
 
+    // Check if user is logged in
+    if (!communication.isLoggedIn()) {
+        QMessageBox::warning(this, "Login Required",
+                             "You must be logged in to book a desk.");
+        showLoginDialog();
+        return;
+    }
+
     BookingDialog dialog(desks[deskIndex], selectedDate, communication, this);
     dialog.exec();
     refreshView();
@@ -155,6 +175,74 @@ void BookingView::refreshView() {
         QString errorMsg = QString("Error while refreshing data: %1").arg(e.what());
         statusBar()->showMessage(errorMsg, 5000);
         QMessageBox::warning(this, "Communication Error", errorMsg);
+    }
+}
+
+void BookingView::showLoginDialog() {
+    // Skip if already logged in
+    if (communication.isLoggedIn()) {
+        return;
+    }
+
+    LoginDialog loginDialog(communication, this);
+    connect(&loginDialog, &LoginDialog::userLoggedIn, this, &BookingView::handleUserLogin);
+
+    // Show the dialog as modal
+    if (loginDialog.exec() == QDialog::Accepted) {
+        LOG_INFO("Login dialog accepted");
+    } else {
+        LOG_INFO("Login dialog canceled");
+    }
+}
+
+void BookingView::handleUserLogin(const User &user) {
+    LOG_INFO("User logged in: id={}, username={}", user.getId(), user.getUsername());
+
+    // Update the UI to reflect logged-in state
+    updateUserInterface();
+
+    // Refresh the view to show user-specific bookings
+    refreshView();
+
+    // Show welcome message
+    statusBar()->showMessage(QString("Welcome, %1!").arg(QString::fromStdString(user.getFullName())), 5000);
+}
+
+void BookingView::handleUserLogout() {
+    LOG_INFO("User logged out");
+
+    // Logout the user
+    communication.logoutUser();
+
+    // Update the UI to reflect logged-out state
+    updateUserInterface();
+
+    // Refresh the view
+    refreshView();
+
+    // Show login dialog
+    QTimer::singleShot(500, this, &BookingView::showLoginDialog);
+
+    // Show message
+    statusBar()->showMessage("You have been logged out", 5000);
+}
+
+void BookingView::updateUserInterface() {
+    bool isLoggedIn = communication.isLoggedIn();
+
+    // Update menu items
+    loginAction->setVisible(!isLoggedIn);
+    logoutAction->setVisible(isLoggedIn);
+    userProfileAction->setVisible(isLoggedIn);
+
+    // Update user info label
+    if (isLoggedIn) {
+        auto user = communication.getCurrentUser();
+        if (user) {
+            userInfoLabel->setText(QString("Logged in as: %1").arg(QString::fromStdString(user->getUsername())));
+        }
+    } else {
+        userInfoLabel->setText("Not logged in");
     }
 }
 
@@ -183,6 +271,12 @@ void BookingView::initializeUI() {
     infoLabel->setAlignment(Qt::AlignCenter);
     optionsLayout->addWidget(infoLabel);
 
+    // Add user info label
+    userInfoLabel = new QLabel("Not logged in", this);
+    userInfoLabel->setAlignment(Qt::AlignCenter);
+    userInfoLabel->setStyleSheet("font-weight: bold; color: blue;");
+    optionsLayout->addWidget(userInfoLabel);
+
     selectBuilding->addItem("Krakow A");
     selectBuilding->addItem("Warsaw B");
     selectFloor->addItem("1st floor");
@@ -205,6 +299,28 @@ void BookingView::initializeUI() {
 
     mapLayout->addWidget(scrollArea);
     mainLayout->addWidget(mapPanel, 1); // Set stretch so map takes more space
+}
+
+void BookingView::initializeMenus() {
+    // Create user menu
+    userMenu = menuBar()->addMenu("User");
+
+    // Login action
+    loginAction = new QAction("Login", this);
+    connect(loginAction, &QAction::triggered, this, &BookingView::showLoginDialog);
+    userMenu->addAction(loginAction);
+
+    // Logout action
+    logoutAction = new QAction("Logout", this);
+    connect(logoutAction, &QAction::triggered, this, &BookingView::handleUserLogout);
+    userMenu->addAction(logoutAction);
+
+    // User profile action
+    userProfileAction = new QAction("My Profile", this);
+    userMenu->addAction(userProfileAction);
+
+    // Initially set visibility based on login state
+    updateUserInterface();
 }
 
 std::vector<Desk> BookingView::getDesksFromServer(int buildingId) {
@@ -338,6 +454,12 @@ void BookingView::updateDeskMap() {
                   }
         );
 
+        // Get current user ID (if logged in)
+        int currentUserId = -1;
+        if (communication.isLoggedIn() && communication.getCurrentUser()) {
+            currentUserId = communication.getCurrentUser()->getId();
+        }
+
         // Check if the desk is booked specifically on the selected date
         if (desk.isBookedOnDate(selectedDate)) {
             // Desk is booked for the selected date - show as unavailable
@@ -347,7 +469,14 @@ void BookingView::updateDeskMap() {
             auto bookingsOnDate = desk.getBookingsContainingDate(selectedDate);
             if (!bookingsOnDate.empty()) {
                 const Booking &booking = bookingsOnDate[0];
-                text += "\nBooked";
+
+                // Check if this is the user's own booking
+                if (booking.getUserId() == currentUserId) {
+                    buttonStyle = "background-color: #bbdefb; color: black;"; // Light blue for own booking
+                    text += "\nYours on";
+                } else {
+                    text += "\nBooked";
+                }
 
                 if (booking.getDateFrom() != booking.getDateTo()) {
                     text += " " + booking.getDateFrom().toString("MM/dd") +

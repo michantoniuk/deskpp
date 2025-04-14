@@ -75,6 +75,8 @@ set(CLIENT_MODEL_FILES
         src/client/model/booking.cpp
         src/client/model/desk.h
         src/client/model/desk.cpp
+        src/client/model/user.h
+        src/client/model/user.cpp
 )
 
 set(CLIENT_UI_FILES
@@ -82,6 +84,8 @@ set(CLIENT_UI_FILES
         src/client/ui/booking_view.cpp
         src/client/ui/booking_dialog.h
         src/client/ui/booking_dialog.cpp
+        src/client/ui/login_dialog.h
+        src/client/ui/login_dialog.cpp
 )
 
 set(CLIENT_NET_FILES
@@ -111,6 +115,8 @@ set(SERVER_MODEL_FILES
         src/server/model/desk.cpp
         src/server/model/building.h
         src/server/model/building.cpp
+        src/server/model/user.h
+        src/server/model/user.cpp
 )
 
 set(SERVER_DB_FILES
@@ -125,6 +131,8 @@ set(SERVER_REPOSITORY_FILES
         src/server/repository/desk_repository.cpp
         src/server/repository/building_repository.h
         src/server/repository/building_repository.cpp
+        src/server/repository/user_repository.h
+        src/server/repository/user_repository.cpp
 )
 
 set(SERVER_API_FILES
@@ -132,11 +140,15 @@ set(SERVER_API_FILES
         src/server/api/booking_controller.cpp
         src/server/api/routing.h
         src/server/api/routing.cpp
+        src/server/api/user_controller.h
+        src/server/api/user_controller.cpp
 )
 
 set(SERVER_SERVICE_FILES
         src/server/service/booking_service.h
         src/server/service/booking_service.cpp
+        src/server/service/user_service.h
+        src/server/service/user_service.cpp
 )
 
 set(SERVER_UTIL_FILES
