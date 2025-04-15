@@ -2,13 +2,11 @@
 #include <QHBoxLayout>
 #include <QMessageBox>
 #include <QPushButton>
-#include <iostream>
-#include "../model/desk.h"
 #include "../util/logger.h"
 
-BookingDialog::BookingDialog(Desk &desk, const QDate &bookingDate, ClientCommunication &communication,
+BookingDialog::BookingDialog(Desk &desk, const QDate &bookingDate, ApiClient &apiClient,
                              QWidget *parent)
-    : QDialog(parent), _desk(desk), _bookingDate(bookingDate), _communication(communication), _bookingId(0) {
+    : QDialog(parent), _desk(desk), _bookingDate(bookingDate), _apiClient(apiClient), _bookingId(0) {
     setWindowTitle("Desk Booking");
     setMinimumWidth(400);
 
@@ -49,8 +47,8 @@ BookingDialog::BookingDialog(Desk &desk, const QDate &bookingDate, ClientCommuni
             }
 
             // Check if this booking is by the current user
-            if (booking.getUserId() == 1) {
-                // Assuming current user ID is 1
+            auto currentUser = apiClient.getCurrentUser();
+            if (currentUser && booking.getUserId() == currentUser->getId()) {
                 statusText += " (your booking)";
             }
         } else {
@@ -146,6 +144,12 @@ void BookingDialog::updateBookButtonState() {
     QDate dateFrom = _dateFromEdit->date();
     QDate dateTo = _dateToEdit->date();
 
+    // Get current user ID (if logged in)
+    int currentUserId = -1;
+    if (_apiClient.isLoggedIn() && _apiClient.getCurrentUser()) {
+        currentUserId = _apiClient.getCurrentUser()->getId();
+    }
+
     // Check for overlapping bookings
     // We need to check all bookings except our own current booking (if we're modifying)
     bool hasOverlap = false;
@@ -153,7 +157,6 @@ void BookingDialog::updateBookButtonState() {
 
     // Get all bookings for this desk
     const auto &allBookings = _desk.getBookings();
-    int currentUserId = 1; // Placeholder for current user ID
 
     for (const auto &booking: allBookings) {
         // Skip checking our own booking that we might be modifying
@@ -248,7 +251,7 @@ void BookingDialog::bookDesk() {
     // Get the current user's ID
     int userId = 1; // Default user ID as fallback
 
-    auto currentUser = _communication.getCurrentUser();
+    auto currentUser = _apiClient.getCurrentUser();
     if (currentUser) {
         userId = currentUser->getId();
         LOG_INFO("Using logged-in user ID: {}", userId);
@@ -256,7 +259,7 @@ void BookingDialog::bookDesk() {
         LOG_WARNING("No logged-in user found, using default user ID: {}", userId);
     }
 
-    bool success = _communication.addBooking(_desk.getId(), userId, dateFromStr, dateToStr);
+    bool success = _apiClient.addBooking(_desk.getId(), userId, dateFromStr, dateToStr);
     if (success) {
         // Add the booking to the desk object for UI display
         Booking newBooking(0, _desk.getId(), userId, dateFrom, dateTo);
@@ -284,7 +287,7 @@ void BookingDialog::cancelBooking() {
 
     if (_bookingId > 0) {
         // Cancel specific booking by ID
-        success = _communication.cancelBooking(_bookingId);
+        success = _apiClient.cancelBooking(_bookingId);
     } else {
         // Get bookings for the selected date
         auto bookingsOnDate = _desk.getBookingsContainingDate(_bookingDate);
@@ -293,10 +296,10 @@ void BookingDialog::cancelBooking() {
             int bookingId = booking.getId();
 
             if (bookingId > 0) {
-                success = _communication.cancelBooking(bookingId);
+                success = _apiClient.cancelBooking(bookingId);
             } else {
                 // Fallback to using desk ID if no booking ID is available
-                success = _communication.cancelBooking(_desk.getId());
+                success = _apiClient.cancelBooking(_desk.getId());
             }
         } else {
             QMessageBox::warning(this, "Cancellation Error",

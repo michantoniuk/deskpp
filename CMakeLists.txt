@@ -1,188 +1,117 @@
 cmake_minimum_required(VERSION 3.14)
 project(DeskPP LANGUAGES CXX)
 
-# Set policy for DOWNLOAD_EXTRACT_TIMESTAMP to avoid warning
-if (POLICY CMP0135)
-    cmake_policy(SET CMP0135 NEW)
-endif ()
+# Suppress warnings
+set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON CACHE INTERNAL "Suppress developer warnings")
+set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "Disable deprecation warnings")
+set(CMAKE_POLICY_DEFAULT_CMP0167 OLD)
 
-# Compilation settings
+# Use C++20
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Dependencies for both client and server
-include(FetchContent)
-
-# nlohmann/json (both client and server)
-FetchContent_Declare(json
-        URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
-        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-FetchContent_MakeAvailable(json)
-
-# spdlog (both client and server)
-FetchContent_Declare(spdlog
-        GIT_REPOSITORY https://github.com/gabime/spdlog.git
-        GIT_TAG v1.11.0
-        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-FetchContent_MakeAvailable(spdlog)
-
-# Client-specific dependencies
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
+# Find Qt packages
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# Boost (client-only)
-FetchContent_Declare(boost_beast
-        GIT_REPOSITORY https://github.com/boostorg/beast.git
-        GIT_TAG boost-1.79.0
-        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-FetchContent_Declare(boost_asio
-        GIT_REPOSITORY https://github.com/boostorg/asio.git
-        GIT_TAG boost-1.79.0
-        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-FetchContent_MakeAvailable(boost_beast boost_asio)
+# Dependencies
+include(FetchContent)
 
-# Server-specific dependencies
-# Fix SQLite3 dependency - use find_package properly
+# JSON library
+FetchContent_Declare(json
+        URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+)
+FetchContent_MakeAvailable(json)
+
+# spdlog for logging
+FetchContent_Declare(spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG v1.10.0  # Use a version compatible with fmt 10.0.0
+)
+# Tell spdlog to use its bundled fmt library
+set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "")
+FetchContent_MakeAvailable(spdlog)
+
+# SQLiteCpp (replaces raw SQLite3 + custom database layer)
+FetchContent_Declare(sqlitecpp
+        GIT_REPOSITORY https://github.com/SRombauts/SQLiteCpp.git
+        GIT_TAG 3.3.1
+)
+# SQLiteCpp options
+set(SQLITECPP_RUN_CPPLINT OFF CACHE BOOL "")
+set(SQLITECPP_RUN_CPPCHECK OFF CACHE BOOL "")
+set(SQLITECPP_INTERNAL_SQLITE OFF CACHE BOOL "")  # Use system sqlite
+FetchContent_MakeAvailable(sqlitecpp)
+
+# Find SQLite3 for server
 find_package(SQLite3 REQUIRED)
-if (NOT SQLite3_FOUND)
-    message(FATAL_ERROR "SQLite3 library not found!")
-endif ()
 
+# Crow for REST API - using version 1.0+5 which doesn't require ASIO
 FetchContent_Declare(crow
         GIT_REPOSITORY https://github.com/CrowCpp/Crow.git
         GIT_TAG v1.0+5
-        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(crow)
 
-# Include paths
+# Common include directories
 include_directories(
         ${CMAKE_SOURCE_DIR}/src
-        ${boost_beast_SOURCE_DIR}/include
-        ${boost_asio_SOURCE_DIR}/include
-        ${crow_SOURCE_DIR}/include
+        ${json_SOURCE_DIR}/include
+        ${sqlitecpp_SOURCE_DIR}/include
+        ${SQLite3_INCLUDE_DIRS}
 )
 
-# CLIENT FILES
-set(CLIENT_MODEL_FILES
-        src/client/model/booking.h
-        src/client/model/booking.cpp
-        src/client/model/desk.h
-        src/client/model/desk.cpp
-        src/client/model/user.h
-        src/client/model/user.cpp
-)
-
-set(CLIENT_UI_FILES
+# Client sources
+set(CLIENT_SOURCES
+        src/client/model/models.h
+        src/client/model/models.cpp
         src/client/ui/booking_view.h
         src/client/ui/booking_view.cpp
         src/client/ui/booking_dialog.h
         src/client/ui/booking_dialog.cpp
         src/client/ui/login_dialog.h
         src/client/ui/login_dialog.cpp
-)
-
-set(CLIENT_NET_FILES
-        src/client/net/client_communication.h
-        src/client/net/client_communication.cpp
-)
-
-set(CLIENT_UTIL_FILES
+        src/client/net/api_client.h
+        src/client/net/api_client.cpp
         src/client/util/logger.h
-        src/client/util/cmd_args.h
-        src/client/util/client_error.h
-)
-
-set(CLIENT_SOURCES
+        src/client/util/app_settings.h
         src/client/main.cpp
-        ${CLIENT_MODEL_FILES}
-        ${CLIENT_UI_FILES}
-        ${CLIENT_NET_FILES}
-        ${CLIENT_UTIL_FILES}
 )
 
-# SERVER FILES
-set(SERVER_MODEL_FILES
-        src/server/model/booking.h
-        src/server/model/booking.cpp
-        src/server/model/desk.h
-        src/server/model/desk.cpp
-        src/server/model/building.h
-        src/server/model/building.cpp
-        src/server/model/user.h
-        src/server/model/user.cpp
-)
-
-set(SERVER_DB_FILES
+# Server sources
+set(SERVER_SOURCES
+        src/server/model/models.h
+        src/server/model/models.cpp
+        src/server/api/controllers.h
+        src/server/api/controllers.cpp
+        src/server/api/api_routes.cpp
+        src/server/service/services.h
+        src/server/service/services.cpp
         src/server/db/database.h
         src/server/db/database.cpp
-)
-
-set(SERVER_REPOSITORY_FILES
-        src/server/repository/booking_repository.h
-        src/server/repository/booking_repository.cpp
-        src/server/repository/desk_repository.h
-        src/server/repository/desk_repository.cpp
-        src/server/repository/building_repository.h
-        src/server/repository/building_repository.cpp
-        src/server/repository/user_repository.h
-        src/server/repository/user_repository.cpp
-)
-
-set(SERVER_API_FILES
-        src/server/api/booking_controller.h
-        src/server/api/booking_controller.cpp
-        src/server/api/routing.h
-        src/server/api/routing.cpp
-        src/server/api/user_controller.h
-        src/server/api/user_controller.cpp
-)
-
-set(SERVER_SERVICE_FILES
-        src/server/service/booking_service.h
-        src/server/service/booking_service.cpp
-        src/server/service/user_service.h
-        src/server/service/user_service.cpp
-)
-
-set(SERVER_UTIL_FILES
         src/server/util/logger.h
-        src/server/util/cmd_args.h
-        src/server/util/date_helper.h
-        src/server/util/date_helper.cpp
-)
-
-set(SERVER_SOURCES
+        src/server/util/app_settings.h
         src/server/main.cpp
-        ${SERVER_MODEL_FILES}
-        ${SERVER_DB_FILES}
-        ${SERVER_REPOSITORY_FILES}
-        ${SERVER_API_FILES}
-        ${SERVER_SERVICE_FILES}
-        ${SERVER_UTIL_FILES}
 )
 
-# Build targets
+# Build client
 add_executable(deskpp_client ${CLIENT_SOURCES})
 target_link_libraries(deskpp_client PRIVATE
         Qt6::Core
         Qt6::Widgets
+        Qt6::Network
         nlohmann_json::nlohmann_json
         spdlog::spdlog
 )
 
+# Build server
 add_executable(deskpp_server ${SERVER_SOURCES})
 target_link_libraries(deskpp_server PRIVATE
         nlohmann_json::nlohmann_json
-        ${SQLite3_LIBRARIES}  # Use the correct variable name for SQLite3
+        SQLite::SQLite3
+        SQLiteCpp
         spdlog::spdlog
+        Crow::Crow
 )
-
-# Add include directories for SQLite3
-target_include_directories(deskpp_server PRIVATE ${SQLite3_INCLUDE_DIRS})

@@ -7,14 +7,14 @@
 #include <QStackedWidget>
 #include <QLabel>
 #include <QRegularExpression>
-#include "../net/client_communication.h"
-#include "../model/user.h"
+#include "../net/api_client.h"
+#include "../model/models.h"
 
 class LoginDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit LoginDialog(ClientCommunication &communication, QWidget *parent = nullptr);
+    explicit LoginDialog(ApiClient &apiClient, QWidget *parent = nullptr);
 
 signals:
     void userLoggedIn(const User &user);
@@ -31,7 +31,7 @@ private slots:
 private:
     void setupUI();
 
-    ClientCommunication &_communication;
+    ApiClient &_apiClient;
     QStackedWidget *_stackedWidget;
 
     // Login page widgets

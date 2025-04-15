@@ -1,74 +1,32 @@
-#include <iostream>
-#include <string>
-#include "ui/booking_view.h"
 #include <QApplication>
 #include <QMessageBox>
-
-#include "net/client_communication.h"
+#include "ui/booking_view.h"
+#include "net/api_client.h"
 #include "util/logger.h"
-#include "util/cmd_args.h"
-#include "model/user.h"
+#include "util/app_settings.h"
 
 int main(int argc, char *argv[]) {
     QApplication application(argc, argv);
+    application.setApplicationName("DeskPP");
+    application.setOrganizationName("DeskPP");
 
-    // Parse command line arguments
-    ClientArgs args;
-    args.parse(argc, argv);
+    // Parse command line arguments and load settings
+    auto &settings = AppSettings::getInstance();
+    settings.parseCommandLine(application);
 
-    // Initialize logger (console only)
-    initLogger(spdlog::level::info);
-
+    // Initialize logger
+    initLogger(settings.isVerboseLogging());
     LOG_INFO("Starting DeskPP client");
 
-    // Extract server address and port from serverUrl
-    std::string serverAddress = "localhost";
-    int port = 8080;
+    // Get server settings
+    std::string serverAddress = settings.getServerAddress();
+    int port = settings.getServerPort();
+    LOG_INFO("Using server: {}:{}", serverAddress, port);
 
-    // Check if a specific port was provided as a command line argument (via --port or -p)
-    if (args.port > 0) {
-        port = args.port;
-        LOG_INFO("Using specified port (from command line): {}", port);
-    } else {
-        // Only extract from server URL if no specific port was provided
-        // The serverUrl is in the format "http://address:port"
-        size_t protocolEnd = args.serverUrl.find("://");
-        if (protocolEnd != std::string::npos) {
-            size_t addressStart = protocolEnd + 3;
-            size_t portSeparator = args.serverUrl.find(':', addressStart);
+    // Create API client
+    ApiClient apiClient(serverAddress, port);
 
-            if (portSeparator != std::string::npos) {
-                serverAddress = args.serverUrl.substr(addressStart, portSeparator - addressStart);
-                std::string portStr = args.serverUrl.substr(portSeparator + 1);
-
-                // Remove any trailing path
-                size_t pathSeparator = portStr.find('/');
-                if (pathSeparator != std::string::npos) {
-                    portStr = portStr.substr(0, pathSeparator);
-                }
-
-                try {
-                    port = std::stoi(portStr);
-                } catch (...) {
-                    LOG_WARNING("Invalid port in server URL, using default port 8080");
-                }
-            } else {
-                serverAddress = args.serverUrl.substr(addressStart);
-                // Remove any trailing path
-                size_t pathSeparator = serverAddress.find('/');
-                if (pathSeparator != std::string::npos) {
-                    serverAddress = serverAddress.substr(0, pathSeparator);
-                }
-            }
-        }
-    }
-
-    LOG_INFO("Connecting to server: {}:{}", serverAddress, port);
-
-    // Create a single ClientCommunication instance to be used everywhere
-    ClientCommunication communication(serverAddress, port);
-
-    if (!communication.isConnected()) {
+    if (!apiClient.isConnected()) {
         QMessageBox msgBox;
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.setWindowTitle("Warning");
@@ -82,22 +40,38 @@ int main(int argc, char *argv[]) {
             return 1;
         }
     } else {
-        // Try auto-login if username and password are provided
-        if (args.autoLogin && !args.username.empty() && !args.password.empty()) {
-            LOG_INFO("Attempting auto-login with username: {}", args.username);
+        // Attempt auto-login if credentials are available and auto-login is enabled
+        if (settings.isAutoLoginEnabled() &&
+            !settings.getUsername().empty() &&
+            !settings.getPassword().empty()) {
+            LOG_INFO("Attempting auto-login with username: {}", settings.getUsername());
 
-            auto user = communication.loginUser(args.username, args.password);
+            auto user = apiClient.loginUser(settings.getUsername(), settings.getPassword());
             if (user) {
                 LOG_INFO("Auto-login successful for user: {}", user->getUsername());
             } else {
-                LOG_WARNING("Auto-login failed for user: {}", args.username);
+                LOG_WARNING("Auto-login failed for user: {}", settings.getUsername());
             }
         }
     }
 
-    // Pass the existing communication instance to BookingView
-    BookingView window(nullptr, communication); // Pass in our communication instance with the correct port
+    // Create and show the main window
+    BookingView window(nullptr, apiClient);
+
+    // Restore window size if needed
+    if (settings.rememberWindowSize()) {
+        window.resize(settings.getWindowSize());
+    }
+
     window.show();
 
-    return application.exec();
+    // Run the application
+    int result = application.exec();
+
+    // Save window size before exit if needed
+    if (settings.rememberWindowSize()) {
+        settings.saveWindowSize(window.width(), window.height());
+    }
+
+    return result;
 }

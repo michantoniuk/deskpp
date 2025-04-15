@@ -4,8 +4,8 @@
 #include <QMessageBox>
 #include "../util/logger.h"
 
-LoginDialog::LoginDialog(ClientCommunication &communication, QWidget *parent)
-    : QDialog(parent), _communication(communication) {
+LoginDialog::LoginDialog(ApiClient &apiClient, QWidget *parent)
+    : QDialog(parent), _apiClient(apiClient) {
     setWindowTitle("DeskPP - Login");
     setupUI();
 
@@ -89,7 +89,7 @@ void LoginDialog::login() {
         return;
     }
 
-    auto user = _communication.loginUser(username.toStdString(), password.toStdString());
+    auto user = _apiClient.loginUser(username.toStdString(), password.toStdString());
 
     if (user) {
         LOG_INFO("User successfully logged in: {}", user->getUsername());
@@ -130,7 +130,7 @@ void LoginDialog::registerUser() {
         return;
     }
 
-    auto user = _communication.registerUser(username.toStdString(), password.toStdString(),
+    auto user = _apiClient.registerUser(username.toStdString(), password.toStdString(),
                                          email.toStdString(), fullName.toStdString());
 
     if (user) {

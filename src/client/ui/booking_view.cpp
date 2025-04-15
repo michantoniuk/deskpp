@@ -1,18 +1,15 @@
 #include "booking_view.h"
 #include "booking_dialog.h"
 #include "login_dialog.h"
-#include "../net/client_communication.h"
-#include <QMainWindow>
+#include "../util/logger.h"
 #include <QVBoxLayout>
 #include <QGroupBox>
 #include <QMessageBox>
 #include <QScrollArea>
 #include <QStatusBar>
-#include <QMenuBar>
-#include <iostream>
-#include "../util/logger.h"
+#include <algorithm>
 
-// Default constructor - creates its own communication instance
+// Default constructor - creates its own ApiClient instance
 BookingView::BookingView(QWidget *parent)
     : QMainWindow(parent),
       centralWidget(new QWidget(this)),
@@ -23,13 +20,12 @@ BookingView::BookingView(QWidget *parent)
       userInfoLabel(new QLabel(this)),
       deskMapLayout(new QGridLayout()),
       deskMapContainer(new QWidget(this)),
-      communication(*(new ClientCommunication())), // Create a new instance on the heap
-      ownsCommunication(true), // This constructor owns the communication instance
-      selectedBuilding(1),
-      selectedFloor(1),
-      selectedDate(QDate::currentDate()) {
-    // This constructor will create a communication instance with default settings (localhost:8080)
-    LOG_INFO("BookingView created with default communication (localhost:8080)");
+      _apiClient(*(new ApiClient(this))), // Create a new instance
+      _ownsApiClient(true), // This constructor owns the API client
+      _selectedBuilding(1),
+      _selectedFloor(1),
+      _selectedDate(QDate::currentDate()) {
+    LOG_INFO("BookingView created with default ApiClient (localhost:8080)");
 
     setCentralWidget(centralWidget);
     initializeUI();
@@ -44,7 +40,7 @@ BookingView::BookingView(QWidget *parent)
     // Show login dialog automatically on startup if not logged in
     QTimer::singleShot(500, this, &BookingView::showLoginDialog);
 
-    if (communication.isConnected()) {
+    if (_apiClient.isConnected()) {
         statusBar()->showMessage("Connected to server. Select a desk to view details or make a booking", 5000);
         buildingChanged(0); // Select first building to load
     } else {
@@ -55,8 +51,8 @@ BookingView::BookingView(QWidget *parent)
     }
 }
 
-// Constructor that accepts an existing ClientCommunication instance
-BookingView::BookingView(QWidget *parent, ClientCommunication &comm)
+// Constructor that accepts an existing ApiClient instance
+BookingView::BookingView(QWidget *parent, ApiClient &apiClient)
     : QMainWindow(parent),
       centralWidget(new QWidget(this)),
       calendar(new QCalendarWidget(this)),
@@ -66,11 +62,11 @@ BookingView::BookingView(QWidget *parent, ClientCommunication &comm)
       userInfoLabel(new QLabel(this)),
       deskMapLayout(new QGridLayout()),
       deskMapContainer(new QWidget(this)),
-      communication(comm), // Use the passed instance
-      ownsCommunication(false), // This constructor doesn't own the communication instance
-      selectedBuilding(1),
-      selectedFloor(1),
-      selectedDate(QDate::currentDate()) {
+      _apiClient(apiClient), // Use the passed instance
+      _ownsApiClient(false), // This constructor doesn't own the ApiClient instance
+      _selectedBuilding(1),
+      _selectedFloor(1),
+      _selectedDate(QDate::currentDate()) {
     setCentralWidget(centralWidget);
     initializeUI();
     initializeMenus();
@@ -84,7 +80,7 @@ BookingView::BookingView(QWidget *parent, ClientCommunication &comm)
     // Show login dialog automatically on startup if not logged in
     QTimer::singleShot(500, this, &BookingView::showLoginDialog);
 
-    if (communication.isConnected()) {
+    if (_apiClient.isConnected()) {
         statusBar()->showMessage("Connected to server. Select a desk to view details or make a booking", 5000);
         buildingChanged(0); // Select first building to load
     } else {
@@ -97,25 +93,25 @@ BookingView::BookingView(QWidget *parent, ClientCommunication &comm)
 
 // Destructor to clean up owned resources
 BookingView::~BookingView() {
-    // Clean up the communication instance if we own it
-    if (ownsCommunication) {
-        delete &communication;
+    // Clean up the API client instance if we own it
+    if (_ownsApiClient) {
+        delete &_apiClient;
     }
 }
 
 void BookingView::buildingChanged(int index) {
-    selectedBuilding = index + 1;
+    _selectedBuilding = index + 1;
 
     try {
-        if (!communication.isConnected() && !communication.testConnection()) {
+        if (!_apiClient.isConnected() && !_apiClient.testConnection()) {
             statusBar()->showMessage("Cannot connect to server. Working in offline mode.", 5000);
             QMessageBox::warning(this, "Communication Error", "Cannot connect to server.");
             return;
         }
 
-        desks = getDesksFromServer(selectedBuilding);
+        _desks = getDesksFromServer(_selectedBuilding);
         updateDeskMap();
-        statusBar()->showMessage(QString("Loaded %1 desks from server").arg(desks.size()), 3000);
+        statusBar()->showMessage(QString("Loaded %1 desks from server").arg(_desks.size()), 3000);
     } catch (const std::exception &e) {
         QString errorMsg = QString("Error while retrieving data from server: %1").arg(e.what());
         statusBar()->showMessage(errorMsg, 5000);
@@ -125,7 +121,7 @@ void BookingView::buildingChanged(int index) {
 }
 
 void BookingView::dateChanged(const QDate &date) {
-    selectedDate = date;
+    _selectedDate = date;
     infoLabel->setText(QString("Office plan for %1").arg(date.toString("MM/dd/yyyy")));
     refreshView();
 }
@@ -136,30 +132,30 @@ void BookingView::deskClicked() {
 
     bool ok;
     int deskIndex = button->property("index").toInt(&ok);
-    if (!ok || deskIndex < 0 || deskIndex >= static_cast<int>(desks.size())) return;
+    if (!ok || deskIndex < 0 || deskIndex >= static_cast<int>(_desks.size())) return;
 
-    if (!communication.isConnected() && !communication.testConnection()) {
+    if (!_apiClient.isConnected() && !_apiClient.testConnection()) {
         QMessageBox::warning(this, "No Connection",
                              "Cannot perform booking operations without server connection.");
         return;
     }
 
     // Check if user is logged in
-    if (!communication.isLoggedIn()) {
+    if (!_apiClient.isLoggedIn()) {
         QMessageBox::warning(this, "Login Required",
                              "You must be logged in to book a desk.");
         showLoginDialog();
         return;
     }
 
-    BookingDialog dialog(desks[deskIndex], selectedDate, communication, this);
+    BookingDialog dialog(_desks[deskIndex], _selectedDate, _apiClient, this);
     dialog.exec();
     refreshView();
 }
 
 void BookingView::refreshView() {
-    if (!communication.isConnected()) {
-        if (communication.testConnection()) {
+    if (!_apiClient.isConnected()) {
+        if (_apiClient.testConnection()) {
             statusBar()->showMessage("Connected to server. Refreshing data...", 3000);
         } else {
             statusBar()->showMessage("Cannot connect to server. Working in offline mode.", 5000);
@@ -168,7 +164,7 @@ void BookingView::refreshView() {
     }
 
     try {
-        desks = getDesksFromServer(selectedBuilding);
+        _desks = getDesksFromServer(_selectedBuilding);
         updateDeskMap();
         statusBar()->showMessage("Data refreshed successfully", 3000);
     } catch (const std::exception &e) {
@@ -180,11 +176,11 @@ void BookingView::refreshView() {
 
 void BookingView::showLoginDialog() {
     // Skip if already logged in
-    if (communication.isLoggedIn()) {
+    if (_apiClient.isLoggedIn()) {
         return;
     }
 
-    LoginDialog loginDialog(communication, this);
+    LoginDialog loginDialog(_apiClient, this);
     connect(&loginDialog, &LoginDialog::userLoggedIn, this, &BookingView::handleUserLogin);
 
     // Show the dialog as modal
@@ -212,7 +208,7 @@ void BookingView::handleUserLogout() {
     LOG_INFO("User logged out");
 
     // Logout the user
-    communication.logoutUser();
+    _apiClient.logoutUser();
 
     // Update the UI to reflect logged-out state
     updateUserInterface();
@@ -228,16 +224,16 @@ void BookingView::handleUserLogout() {
 }
 
 void BookingView::updateUserInterface() {
-    bool isLoggedIn = communication.isLoggedIn();
+    bool isLoggedIn = _apiClient.isLoggedIn();
 
     // Update menu items
-    loginAction->setVisible(!isLoggedIn);
-    logoutAction->setVisible(isLoggedIn);
-    userProfileAction->setVisible(isLoggedIn);
+    _loginAction->setVisible(!isLoggedIn);
+    _logoutAction->setVisible(isLoggedIn);
+    _userProfileAction->setVisible(isLoggedIn);
 
     // Update user info label
     if (isLoggedIn) {
-        auto user = communication.getCurrentUser();
+        auto user = _apiClient.getCurrentUser();
         if (user) {
             userInfoLabel->setText(QString("Logged in as: %1").arg(QString::fromStdString(user->getUsername())));
         }
@@ -303,139 +299,42 @@ void BookingView::initializeUI() {
 
 void BookingView::initializeMenus() {
     // Create user menu
-    userMenu = menuBar()->addMenu("User");
+    _userMenu = menuBar()->addMenu("User");
 
     // Login action
-    loginAction = new QAction("Login", this);
-    connect(loginAction, &QAction::triggered, this, &BookingView::showLoginDialog);
-    userMenu->addAction(loginAction);
+    _loginAction = new QAction("Login", this);
+    connect(_loginAction, &QAction::triggered, this, &BookingView::showLoginDialog);
+    _userMenu->addAction(_loginAction);
 
     // Logout action
-    logoutAction = new QAction("Logout", this);
-    connect(logoutAction, &QAction::triggered, this, &BookingView::handleUserLogout);
-    userMenu->addAction(logoutAction);
+    _logoutAction = new QAction("Logout", this);
+    connect(_logoutAction, &QAction::triggered, this, &BookingView::handleUserLogout);
+    _userMenu->addAction(_logoutAction);
 
     // User profile action
-    userProfileAction = new QAction("My Profile", this);
-    userMenu->addAction(userProfileAction);
+    _userProfileAction = new QAction("My Profile", this);
+    _userMenu->addAction(_userProfileAction);
 
     // Initially set visibility based on login state
     updateUserInterface();
 }
 
 std::vector<Desk> BookingView::getDesksFromServer(int buildingId) {
-    LOG_INFO("Getting desks from server for building ID: {}", buildingId);
-    std::vector<json> desksJson = communication.getDesks(buildingId);
-    LOG_INFO("Received {} desks from server", desksJson.size());
-
-    std::vector<Desk> desks;
-    for (const auto &deskJson: desksJson) {
-        LOG_INFO("Processing desk JSON: {}", deskJson.dump());
-
-        int id = deskJson.contains("id") ? deskJson["id"].get<int>() : 0;
-
-        // Read deskId which maps to the 'name' field in database
-        std::string deskId = deskJson.contains("deskId") ? deskJson["deskId"].get<std::string>() : "Unknown";
-
-        // Read buildingId
-        std::string buildingId;
-        if (deskJson.contains("buildingId")) {
-            try {
-                if (deskJson["buildingId"].is_string()) {
-                    buildingId = deskJson["buildingId"].get<std::string>();
-                } else if (deskJson["buildingId"].is_number()) {
-                    // Convert number to string
-                    buildingId = std::to_string(deskJson["buildingId"].get<int>());
-                } else {
-                    buildingId = "Unknown";
-                }
-            } catch (const std::exception &e) {
-                LOG_ERROR("Error reading buildingId: {}", e.what());
-                buildingId = "Unknown";
-            }
-        } else {
-            buildingId = "Unknown";
-        }
-
-        int floorNumber = deskJson.contains("floorNumber") ? deskJson["floorNumber"].get<int>() : 0;
-
-        // Create desk with the simplified constructor
-        Desk desk(id, deskId, buildingId, floorNumber);
-
-        // Handle multiple bookings if present in response
-        if (deskJson.contains("bookings") && deskJson["bookings"].is_array()) {
-            // Process multiple bookings
-            for (const auto &bookingJson: deskJson["bookings"]) {
-                try {
-                    // Convert json object to string for parsing
-                    std::string bookingStr = bookingJson.dump();
-                    // Create booking from json
-                    Booking booking = Booking::fromJson(bookingStr);
-
-                    // Only add valid bookings (with valid dates)
-                    if (booking.getDateFrom().isValid() && booking.getDateTo().isValid()) {
-                        // Set the desk ID if not already set
-                        if (booking.getDeskId() == 0) {
-                            booking.setDeskId(id);
-                        }
-                        desk.addBooking(booking);
-                    }
-                } catch (const std::exception &e) {
-                    LOG_ERROR("Error processing booking JSON: {}", e.what());
-                }
-            }
-        } else if (deskJson.contains("booked") && deskJson["booked"].get<bool>()) {
-            // Handle legacy single booking information
-            int bookingId = 0;
-            if (deskJson.contains("bookingId")) {
-                bookingId = deskJson["bookingId"].get<int>();
-            }
-
-            QDate dateFrom, dateTo;
-
-            if (deskJson.contains("bookingDateFrom") && !deskJson["bookingDateFrom"].is_null()) {
-                std::string dateFromStr = deskJson["bookingDateFrom"].get<std::string>();
-                dateFrom = QDate::fromString(QString::fromStdString(dateFromStr), "yyyy-MM-dd");
-            } else if (deskJson.contains("bookingDate") && !deskJson["bookingDate"].is_null()) {
-                // For compatibility with old format
-                std::string dateStr = deskJson["bookingDate"].get<std::string>();
-                dateFrom = QDate::fromString(QString::fromStdString(dateStr), "yyyy-MM-dd");
-            } else {
-                dateFrom = QDate::currentDate();
-            }
-
-            if (deskJson.contains("bookingDateTo") && !deskJson["bookingDateTo"].is_null()) {
-                std::string dateToStr = deskJson["bookingDateTo"].get<std::string>();
-                dateTo = QDate::fromString(QString::fromStdString(dateToStr), "yyyy-MM-dd");
-            } else {
-                dateTo = dateFrom; // If no end date, use start date
-            }
-
-            // Create a Booking object and add it to the desk
-            if (dateFrom.isValid() && dateTo.isValid()) {
-                Booking booking(bookingId, id, 0, dateFrom, dateTo);
-                desk.addBooking(booking);
-            }
-        }
-
-        desks.push_back(desk);
-    }
-
-    return desks;
+    return _apiClient.getDesks(buildingId);
 }
 
 void BookingView::updateDeskMap() {
     // Clear existing buttons
-    for (auto button: deskButtons) {
+    for (auto button: _deskButtons) {
         deskMapLayout->removeWidget(button);
         delete button;
     }
-    deskButtons.clear();
+    _deskButtons.clear();
 
     const int numColumns = 4;
 
-    for (size_t i = 0; i < desks.size(); ++i) {
-        const auto &desk = desks[i];
+    for (size_t i = 0; i < _desks.size(); ++i) {
+        const auto &desk = _desks[i];
 
         auto button = new QPushButton(QString::fromStdString(desk.getDeskId()), this);
         button->setMinimumSize(100, 80);
@@ -456,17 +355,17 @@ void BookingView::updateDeskMap() {
 
         // Get current user ID (if logged in)
         int currentUserId = -1;
-        if (communication.isLoggedIn() && communication.getCurrentUser()) {
-            currentUserId = communication.getCurrentUser()->getId();
+        if (_apiClient.isLoggedIn() && _apiClient.getCurrentUser()) {
+            currentUserId = _apiClient.getCurrentUser()->getId();
         }
 
         // Check if the desk is booked specifically on the selected date
-        if (desk.isBookedOnDate(selectedDate)) {
+        if (desk.isBookedOnDate(_selectedDate)) {
             // Desk is booked for the selected date - show as unavailable
             buttonStyle = "background-color: #d7ccc8; color: black;"; // Light brown for booked
 
             // Get booking that contains this date
-            auto bookingsOnDate = desk.getBookingsContainingDate(selectedDate);
+            auto bookingsOnDate = desk.getBookingsContainingDate(_selectedDate);
             if (!bookingsOnDate.empty()) {
                 const Booking &booking = bookingsOnDate[0];
 
@@ -494,7 +393,7 @@ void BookingView::updateDeskMap() {
             QDate nextBookingEndDate;
 
             for (const auto &booking: allBookings) {
-                if (booking.getDateFrom() >= selectedDate) {
+                if (booking.getDateFrom() >= _selectedDate) {
                     // This is a future booking
                     if (nextBookingDate.isNull() || booking.getDateFrom() < nextBookingDate) {
                         nextBookingDate = booking.getDateFrom();
@@ -505,7 +404,7 @@ void BookingView::updateDeskMap() {
 
             // Add information about the next booking if it exists
             if (!nextBookingDate.isNull()) {
-                if (nextBookingDate == selectedDate.addDays(1)) {
+                if (nextBookingDate == _selectedDate.addDays(1)) {
                     // If the next booking is tomorrow, show it as "Tomorrow"
                     text += "\nBooked tomorrow";
                 } else {
@@ -531,6 +430,6 @@ void BookingView::updateDeskMap() {
         int column = i % numColumns;
         deskMapLayout->addWidget(button, row, column);
 
-        deskButtons.push_back(button);
+        _deskButtons.push_back(button);
     }
 }

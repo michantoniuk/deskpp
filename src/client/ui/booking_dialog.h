@@ -9,14 +9,14 @@
 #include <QDate>
 #include <QDateEdit>
 #include <QGroupBox>
-#include "../model/desk.h"
-#include "../net/client_communication.h"
+#include "../model/models.h"
+#include "../net/api_client.h"
 
 class BookingDialog : public QDialog {
     Q_OBJECT
 
 public:
-    BookingDialog(Desk &desk, const QDate &bookingDate, ClientCommunication &communication,
+    BookingDialog(Desk &desk, const QDate &bookingDate, ApiClient &apiClient,
                   QWidget *parent = nullptr);
 
 private slots:
@@ -31,7 +31,7 @@ private slots:
 private:
     Desk &_desk;
     QDate _bookingDate;
-    ClientCommunication &_communication;
+    ApiClient &_apiClient;
     int _bookingId;
 
     QLabel *_deskLabel;

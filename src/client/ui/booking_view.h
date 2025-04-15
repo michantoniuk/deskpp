@@ -13,9 +13,8 @@
 #include <QDate>
 #include <QTimer>
 #include <vector>
-#include "../model/desk.h"
-#include "../model/user.h"
-#include "../net/client_communication.h"
+#include "../model/models.h"
+#include "../net/api_client.h"
 
 class BookingView : public QMainWindow {
     Q_OBJECT
@@ -23,7 +22,7 @@ class BookingView : public QMainWindow {
 public:
     explicit BookingView(QWidget *parent = nullptr);
 
-    BookingView(QWidget *parent, ClientCommunication &comm);
+    BookingView(QWidget *parent, ApiClient &apiClient);
 
     ~BookingView() override;
 
@@ -64,21 +63,21 @@ private:
     QGridLayout *deskMapLayout;
     QWidget *deskMapContainer;
 
-    ClientCommunication &communication;
-    bool ownsCommunication;
+    ApiClient &_apiClient;
+    bool _ownsApiClient;
 
-    std::vector<Desk> desks;
-    std::vector<QPushButton *> deskButtons;
+    std::vector<Desk> _desks;
+    std::vector<QPushButton *> _deskButtons;
 
-    int selectedBuilding;
-    int selectedFloor;
-    QDate selectedDate;
+    int _selectedBuilding;
+    int _selectedFloor;
+    QDate _selectedDate;
 
     // Menu items
-    QMenu *userMenu;
-    QAction *loginAction;
-    QAction *logoutAction;
-    QAction *userProfileAction;
+    QMenu *_userMenu;
+    QAction *_loginAction;
+    QAction *_logoutAction;
+    QAction *_userProfileAction;
 };
 
 #endif // BOOKING_VIEW_H
