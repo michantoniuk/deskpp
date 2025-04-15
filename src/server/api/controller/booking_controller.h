@@ -1,19 +1,15 @@
-#ifndef SERVER_BOOKING_CONTROLLER_H
-#define SERVER_BOOKING_CONTROLLER_H
+#ifndef BOOKING_CONTROLLER_H
+#define BOOKING_CONTROLLER_H
 
-#include "base_controller.h"
-#include <crow.h>
+#include "controller.h"
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <vector>
-#include "../service/booking_service.h"
+#include "server/service/booking_service.h"
 
 using json = nlohmann::json;
 
-/**
- * Controller for booking-related API endpoints
- */
-class BookingController : public BaseController {
+class BookingController : public Controller {
 public:
     explicit BookingController(BookingService &bookingService);
 
@@ -31,4 +27,4 @@ private:
     BookingService &_bookingService;
 };
 
-#endif // SERVER_BOOKING_CONTROLLER_H
+#endif // BOOKING_CONTROLLER_H

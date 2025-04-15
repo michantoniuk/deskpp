@@ -1,5 +1,5 @@
-#ifndef COMMON_ENTITY_H
-#define COMMON_ENTITY_H
+#ifndef ENTITY_H
+#define ENTITY_H
 
 #include <nlohmann/json.hpp>
 #include <string>
@@ -32,4 +32,4 @@ protected:
     int _id; // Entity identifier
 };
 
-#endif // COMMON_ENTITY_H
+#endif // ENTITY_H

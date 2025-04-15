@@ -1,5 +1,5 @@
-#ifndef CLIENT_API_CLIENT_H
-#define CLIENT_API_CLIENT_H
+#ifndef API_CLIENT_H
+#define API_CLIENT_H
 
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -8,13 +8,14 @@
 #include <vector>
 #include <optional>
 #include <nlohmann/json.hpp>
-#include "common/models.h"
+#include "common/model/model.h"
+#include "common/logger.h"
 
 using json = nlohmann::json;
 
 /**
  * API client for communication with the server.
- * Uses Qt's networking facilities instead of Boost.Beast.
+ * Uses Qt's networking facilities.
  */
 class ApiClient : public QObject {
     Q_OBJECT
@@ -45,6 +46,7 @@ public:
 
     std::optional<User> loginUser(const std::string &username, const std::string &password);
 
+    // User state management
     std::optional<User> getCurrentUser() const { return _currentUser; }
     void setCurrentUser(const User &user) { _currentUser = user; }
     void logoutUser() { _currentUser = std::nullopt; }
@@ -53,6 +55,12 @@ public:
 private:
     // HTTP request execution with wait for completion
     json executeRequest(const QString &method, const QString &endpoint, const json &data = json::object());
+
+    // Simple request handlers
+    std::optional<User> executeUserRequest(const QString &method, const QString &endpoint,
+                                           const json &data = json::object());
+
+    bool executeActionRequest(const QString &method, const QString &endpoint, const json &data = json::object());
 
     // Server information
     QString _serverUrl;
@@ -65,4 +73,4 @@ private:
     std::optional<User> _currentUser;
 };
 
-#endif // CLIENT_API_CLIENT_H
+#endif // API_CLIENT_H

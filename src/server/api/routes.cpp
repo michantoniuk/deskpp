@@ -1,5 +1,6 @@
 #include "routes.h"
-#include "../util/logger.h"
+#include "common/logger.h"
+#include "controller/booking_controller.h"
 
 void registerRoutes(crow::SimpleApp &app, BookingController &bookingController, UserController &userController) {
     // Buildings endpoint

@@ -1,5 +1,5 @@
 #include "user_controller.h"
-#include "../util/logger.h"
+#include "common/logger.h"
 
 UserController::UserController(UserService &userService)
     : _userService(userService) {
@@ -15,12 +15,14 @@ crow::response UserController::getUsers(const crow::request &req) {
 crow::response UserController::getUser(int id) {
     return tryCatchResponse([&]() {
         json result = _userService.getUserById(id);
+
         if (result.contains("status") && result["status"] == "error") {
             std::string message = result.contains("message")
                                       ? result["message"].get<std::string>()
                                       : "User not found";
             return errorResponse(404, message);
         }
+
         return successResponse(result);
     });
 }
@@ -98,14 +100,12 @@ crow::response UserController::updateUser(int id, const crow::request &req) {
 
 crow::response UserController::deleteUser(int id) {
     return tryCatchResponse([&]() {
-        LOG_INFO("Deleting user: id={}", id);
-
         json result = _userService.deleteUser(id);
 
         if (result.contains("status") && result["status"] == "error") {
             std::string message = result.contains("message")
                                       ? result["message"].get<std::string>()
-                                      : "Error deleting user";
+                                      : "User not found";
             return errorResponse(404, message);
         }
 

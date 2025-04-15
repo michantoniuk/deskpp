@@ -1,19 +1,17 @@
 #ifndef SERVER_USER_CONTROLLER_H
 #define SERVER_USER_CONTROLLER_H
 
-#include "base_controller.h"
-#include <crow.h>
-#include <nlohmann/json.hpp>
+#include "controller.h"
 #include <optional>
 #include <vector>
-#include "../service/user_service.h"
+#include "../../service/user_service.h"
 
 using json = nlohmann::json;
 
 /**
  * Controller for user-related API endpoints
  */
-class UserController : public BaseController {
+class UserController : public Controller {
 public:
     explicit UserController(UserService &userService);
 

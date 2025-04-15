@@ -2,7 +2,7 @@
 #include <QHBoxLayout>
 #include <QMessageBox>
 #include <QPushButton>
-#include "../util/logger.h"
+#include "common/logger.h"
 
 BookingDialog::BookingDialog(Desk &desk, const QDate &bookingDate, ApiClient &apiClient,
                              QWidget *parent)

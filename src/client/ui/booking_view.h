@@ -13,7 +13,7 @@
 #include <QDate>
 #include <QTimer>
 #include <vector>
-#include "common/models.h"
+#include "common/model/model.h"
 #include "../net/api_client.h"
 
 class BookingView : public QMainWindow {
@@ -45,30 +45,40 @@ private slots:
     void updateUserInterface();
 
 private:
-    void initializeUI();
+    void setupUi();
 
     void initializeMenus();
 
+    void setupConnections();
+
+    void checkServerConnection();
+
     void updateDeskMap();
 
-    std::vector<Desk> getDesksFromServer(int buildingId);
+    // Helper functions
+    QPushButton *createDeskButton(const Desk &desk, int index);
 
+    void formatDeskStatus(const Desk &desk, QString &text, QString &buttonStyle, int currentUserId);
+
+    // UI components
     QWidget *centralWidget;
     QCalendarWidget *calendar;
     QComboBox *selectBuilding;
     QComboBox *selectFloor;
     QLabel *infoLabel;
     QLabel *userInfoLabel;
-
     QGridLayout *deskMapLayout;
     QWidget *deskMapContainer;
 
+    // API client
     ApiClient &_apiClient;
     bool _ownsApiClient;
 
+    // Data
     std::vector<Desk> _desks;
     std::vector<QPushButton *> _deskButtons;
 
+    // Current selection
     int _selectedBuilding;
     int _selectedFloor;
     QDate _selectedDate;

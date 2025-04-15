@@ -1,5 +1,5 @@
 #include "booking_controller.h"
-#include "../util/logger.h"
+#include "common/logger.h"
 
 BookingController::BookingController(BookingService &bookingService)
     : _bookingService(bookingService) {
@@ -95,14 +95,12 @@ crow::response BookingController::addBooking(const crow::request &req) {
 
 crow::response BookingController::cancelBooking(int bookingId) {
     return tryCatchResponse([&]() {
-        LOG_INFO("Cancelling booking ID: {}", bookingId);
-
         json result = _bookingService.cancelBooking(bookingId);
 
         if (result.contains("status") && result["status"] == "error") {
             std::string message = result.contains("message")
                                       ? result["message"].get<std::string>()
-                                      : "Error cancelling booking";
+                                      : "Error processing request";
             return errorResponse(404, message);
         }
 

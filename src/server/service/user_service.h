@@ -1,17 +1,14 @@
 #ifndef USER_SERVICE_H
 #define USER_SERVICE_H
 
-#include "base_service.h"
+#include "service.h"
 #include <string>
 #include <nlohmann/json.hpp>
 #include "../repository/user_repository.h"
 
 using json = nlohmann::json;
 
-/**
- * Service layer for user operations
- */
-class UserService : public BaseService {
+class UserService : public Service<User> {
 public:
     explicit UserService(UserRepository &userRepository);
 
@@ -31,7 +28,7 @@ public:
     json deleteUser(int id);
 
 private:
-    UserRepository &_userRepository;
+    UserRepository &_userRepo;
 
     // Helpers
     bool validateUserData(const std::string &username, const std::string &password,

@@ -1,30 +1,23 @@
 #ifndef BUILDING_REPOSITORY_H
 #define BUILDING_REPOSITORY_H
 
-#include "common/repository.h"
-#include "common/models.h"
+#include "repository.h"
+#include "../../common/model/model.h"
 #include <SQLiteCpp/SQLiteCpp.h>
 #include <memory>
 
-class BuildingRepository : public Repository<Building> {
+#include "sqlite_repository.h"
+
+class BuildingRepository : public SQLiteRepository<Building> {
 public:
     explicit BuildingRepository(std::shared_ptr<SQLite::Database> db);
-
-    std::vector<Building> findAll() override;
-
-    std::optional<Building> findById(int id) override;
-
-    Building add(const Building &building) override;
-
-    bool update(const Building &building) override;
-
-    bool remove(int id) override;
 
     // Additional specialized methods
     std::optional<Building> findByName(const std::string &name);
 
 private:
-    std::shared_ptr<SQLite::Database> _db;
+    // Helper for loading building from query result
+    static Building buildingFromRow(SQLite::Statement &query);
 };
 
 #endif // BUILDING_REPOSITORY_H

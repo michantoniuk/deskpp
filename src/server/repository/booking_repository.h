@@ -1,24 +1,14 @@
 #ifndef BOOKING_REPOSITORY_H
 #define BOOKING_REPOSITORY_H
 
-#include "common/repository.h"
-#include "common/models.h"
+#include "sqlite_repository.h"
+#include "../../common/model/model.h"
 #include <SQLiteCpp/SQLiteCpp.h>
 #include <memory>
 
-class BookingRepository : public Repository<Booking> {
+class BookingRepository : public SQLiteRepository<Booking> {
 public:
     explicit BookingRepository(std::shared_ptr<SQLite::Database> db);
-
-    std::vector<Booking> findAll() override;
-
-    std::optional<Booking> findById(int id) override;
-
-    Booking add(const Booking &booking) override;
-
-    bool update(const Booking &booking) override;
-
-    bool remove(int id) override;
 
     // Additional specialized methods
     std::vector<Booking> findByDeskId(int deskId);
@@ -32,7 +22,8 @@ public:
     bool hasOverlappingBooking(int deskId, const std::string &dateFrom, const std::string &dateTo);
 
 private:
-    std::shared_ptr<SQLite::Database> _db;
+    // Helper for loading booking from query result
+    static Booking bookingFromRow(SQLite::Statement &query);
 };
 
 #endif // BOOKING_REPOSITORY_H

@@ -3,28 +3,38 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
-#include "../util/logger.h"
+#include "common/logger.h"
 
 BookingService::BookingService(BuildingRepository &buildingRepository,
                                DeskRepository &deskRepository,
                                BookingRepository &bookingRepository)
-    : _buildingRepository(buildingRepository),
-      _deskRepository(deskRepository),
-      _bookingRepository(bookingRepository) {
+    : Service<Booking>(bookingRepository),
+      _buildingRepo(buildingRepository),
+      _deskRepo(deskRepository),
+      _bookingRepo(bookingRepository) {
 }
 
 json BookingService::getAllBuildings() {
-    auto buildings = _buildingRepository.findAll();
-    return entityListToJson(buildings, "buildings");
+    auto buildings = _buildingRepo.findAll();
+    return buildingListToJson(buildings, "buildings");
+}
+
+json BookingService::buildingListToJson(const std::vector<Building> &buildings, const std::string &key) {
+    json array = json::array();
+    for (const auto &building: buildings) {
+        array.push_back(building.toJson());
+    }
+
+    return successResponse({{key, array}});
 }
 
 json BookingService::getDesksByBuilding(int buildingId) {
     std::vector<Desk> desks;
 
     if (buildingId > 0) {
-        desks = _deskRepository.findByBuildingId(buildingId);
+        desks = _deskRepo.findByBuildingId(buildingId);
     } else {
-        desks = _deskRepository.findAll();
+        desks = _deskRepo.findAll();
     }
 
     json desksArray = json::array();
@@ -32,7 +42,7 @@ json BookingService::getDesksByBuilding(int buildingId) {
         json deskJson = desk.toJson();
 
         // Get active bookings for this desk
-        auto bookings = _bookingRepository.findByDeskId(desk.getId());
+        auto bookings = _bookingRepo.findByDeskId(desk.getId());
 
         bool hasBookings = !bookings.empty();
         deskJson["booked"] = hasBookings;
@@ -61,7 +71,7 @@ json BookingService::getDesksByBuilding(int buildingId) {
 }
 
 json BookingService::getBookingsForDesk(int deskId, const std::string &date) {
-    auto bookings = _bookingRepository.findBy([deskId, &date](const Booking &booking) {
+    auto bookings = _bookingRepo.findBy([deskId, &date](const Booking &booking) {
         return booking.getDeskId() == deskId && booking.containsDate(date);
     });
 
@@ -69,7 +79,7 @@ json BookingService::getBookingsForDesk(int deskId, const std::string &date) {
 }
 
 json BookingService::getBookingsForDeskInRange(int deskId, const std::string &dateFrom, const std::string &dateTo) {
-    auto bookings = _bookingRepository.findByDateRange(deskId, dateFrom, dateTo);
+    auto bookings = _bookingRepo.findByDateRange(deskId, dateFrom, dateTo);
     return entityListToJson(bookings, "bookings");
 }
 
@@ -80,7 +90,7 @@ json BookingService::addBooking(int deskId, int userId, const std::string &dateF
     }
 
     // Check if desk exists
-    auto desk = _deskRepository.findById(deskId);
+    auto desk = _deskRepo.findById(deskId);
     if (!desk) {
         return errorResponse("Desk does not exist");
     }
@@ -98,7 +108,7 @@ json BookingService::addBooking(int deskId, int userId, const std::string &dateF
     booking.setDateTo(dateTo);
 
     // Add booking
-    Booking createdBooking = _bookingRepository.add(booking);
+    Booking createdBooking = _repository.add(booking);
 
     // Check if booking was created successfully
     if (createdBooking.getId() <= 0) {
@@ -109,19 +119,7 @@ json BookingService::addBooking(int deskId, int userId, const std::string &dateF
 }
 
 json BookingService::cancelBooking(int bookingId) {
-    // Check if booking exists
-    auto booking = _bookingRepository.findById(bookingId);
-    if (!booking) {
-        return errorResponse("Booking does not exist");
-    }
-
-    // Cancel booking
-    bool success = _bookingRepository.remove(bookingId);
-    if (!success) {
-        return errorResponse("Error cancelling booking");
-    }
-
-    return successResponse({{"message", "Booking has been canceled"}});
+    return removeById(bookingId, "Booking has been canceled", "Booking does not exist");
 }
 
 bool BookingService::validateBookingDates(const std::string &dateFrom, const std::string &dateTo) {
@@ -155,5 +153,5 @@ bool BookingService::validateBookingDates(const std::string &dateFrom, const std
 
 bool BookingService::isBookingAllowed(int deskId, const std::string &dateFrom, const std::string &dateTo) {
     // Check for overlapping bookings
-    return !_bookingRepository.hasOverlappingBooking(deskId, dateFrom, dateTo);
+    return !_bookingRepo.hasOverlappingBooking(deskId, dateFrom, dateTo);
 }

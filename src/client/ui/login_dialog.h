@@ -8,7 +8,7 @@
 #include <QLabel>
 #include <QRegularExpression>
 #include "../net/api_client.h"
-#include "common/models.h"
+#include "common/model/model.h"
 
 class LoginDialog : public QDialog {
     Q_OBJECT

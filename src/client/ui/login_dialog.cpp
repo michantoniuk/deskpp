@@ -2,7 +2,7 @@
 #include <QVBoxLayout>
 #include <QFormLayout>
 #include <QMessageBox>
-#include "../util/logger.h"
+#include "common/logger.h"
 
 LoginDialog::LoginDialog(ApiClient &apiClient, QWidget *parent)
     : QDialog(parent), _apiClient(apiClient) {

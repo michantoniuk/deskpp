@@ -8,7 +8,6 @@
 #include <QNetworkReply>
 #include <QTimer>
 #include <sstream>
-#include "../util/logger.h"
 
 ApiClient::ApiClient(QObject *parent)
     : QObject(parent), _serverUrl("http://localhost:8080") {
@@ -117,6 +116,37 @@ json ApiClient::executeRequest(const QString &method, const QString &endpoint, c
         return json::parse(responseData.toStdString());
     } catch (const std::exception &ex) {
         throw std::runtime_error("Invalid JSON response: " + std::string(ex.what()));
+    }
+}
+
+std::optional<User> ApiClient::executeUserRequest(const QString &method, const QString &endpoint, const json &data) {
+    try {
+        json response = executeRequest(method, endpoint, data);
+
+        if (response.contains("status") && response["status"] == "success" &&
+            response.contains("user") && !response["user"].is_null()) {
+            auto &jsonObj = response["user"];
+            int id = jsonObj.contains("id") ? jsonObj["id"].get<int>() : 0;
+            std::string username = jsonObj.contains("username") ? jsonObj["username"].get<std::string>() : "";
+            std::string email = jsonObj.contains("email") ? jsonObj["email"].get<std::string>() : "";
+            std::string fullName = jsonObj.contains("fullName") ? jsonObj["fullName"].get<std::string>() : "";
+
+            return User(id, username, email, fullName);
+        }
+    } catch (const std::exception &ex) {
+        LOG_ERROR("Error in user request: {}", ex.what());
+    }
+
+    return std::nullopt;
+}
+
+bool ApiClient::executeActionRequest(const QString &method, const QString &endpoint, const json &data) {
+    try {
+        json response = executeRequest(method, endpoint, data);
+        return response.contains("status") && response["status"] == "success";
+    } catch (const std::exception &ex) {
+        LOG_ERROR("Error in action request: {}", ex.what());
+        return false;
     }
 }
 
@@ -235,50 +265,13 @@ bool ApiClient::addBooking(int deskId, int userId, const std::string &dateFrom, 
         {"dateTo", dateTo}
     };
 
-    try {
-        json response = executeRequest("POST", "/api/bookings", data);
-
-        bool success = response.contains("status") && response["status"] == "success";
-
-        if (success) {
-            LOG_INFO("Booking added successfully");
-        } else {
-            std::string errorMsg = response.contains("message")
-                                       ? response["message"].get<std::string>()
-                                       : "Unknown error";
-            LOG_ERROR("Error adding booking: {}", errorMsg);
-        }
-
-        return success;
-    } catch (const std::exception &ex) {
-        LOG_ERROR("Error adding booking: {}", ex.what());
-        return false;
-    }
+    return executeActionRequest("POST", "/api/bookings", data);
 }
 
 bool ApiClient::cancelBooking(int bookingId) {
     LOG_INFO("Canceling booking: id={}", bookingId);
-
-    try {
-        QString endpoint = "/api/bookings/" + QString::number(bookingId);
-        json response = executeRequest("DELETE", endpoint);
-
-        bool success = response.contains("status") && response["status"] == "success";
-
-        if (success) {
-            LOG_INFO("Booking canceled successfully");
-        } else {
-            std::string errorMsg = response.contains("message")
-                                       ? response["message"].get<std::string>()
-                                       : "Unknown error";
-            LOG_ERROR("Error canceling booking: {}", errorMsg);
-        }
-
-        return success;
-    } catch (const std::exception &ex) {
-        LOG_ERROR("Error canceling booking: {}", ex.what());
-        return false;
-    }
+    QString endpoint = "/api/bookings/" + QString::number(bookingId);
+    return executeActionRequest("DELETE", endpoint);
 }
 
 std::optional<User> ApiClient::registerUser(const std::string &username, const std::string &password,
@@ -292,40 +285,15 @@ std::optional<User> ApiClient::registerUser(const std::string &username, const s
         {"fullName", fullName}
     };
 
-    try {
-        json response = executeRequest("POST", "/api/users/register", data);
+    auto user = executeUserRequest("POST", "/api/users/register", data);
 
-        if (response.contains("status") && response["status"] == "success" &&
-            response.contains("user") && !response["user"].is_null()) {
-            // Create User from response
-            int id = response["user"].contains("id") ? response["user"]["id"].get<int>() : 0;
-            std::string username = response["user"].contains("username")
-                                       ? response["user"]["username"].get<std::string>()
-                                       : "";
-            std::string email = response["user"].contains("email") ? response["user"]["email"].get<std::string>() : "";
-            std::string fullName = response["user"].contains("fullName")
-                                       ? response["user"]["fullName"].get<std::string>()
-                                       : "";
-
-            User user(id, username, email, fullName);
-
-            LOG_INFO("User registered successfully: id={}", user.getId());
-
-            // Set as current user
-            _currentUser = user;
-
-            return user;
-        } else {
-            std::string errorMsg = response.contains("message")
-                                       ? response["message"].get<std::string>()
-                                       : "Unknown error";
-            LOG_ERROR("Error registering user: {}", errorMsg);
-            return std::nullopt;
-        }
-    } catch (const std::exception &ex) {
-        LOG_ERROR("Error registering user: {}", ex.what());
-        return std::nullopt;
+    if (user) {
+        // Set as current user
+        _currentUser = *user;
+        LOG_INFO("User registered successfully: id={}", user->getId());
     }
+
+    return user;
 }
 
 std::optional<User> ApiClient::loginUser(const std::string &username, const std::string &password) {
@@ -336,38 +304,13 @@ std::optional<User> ApiClient::loginUser(const std::string &username, const std:
         {"password", password}
     };
 
-    try {
-        json response = executeRequest("POST", "/api/users/login", data);
+    auto user = executeUserRequest("POST", "/api/users/login", data);
 
-        if (response.contains("status") && response["status"] == "success" &&
-            response.contains("user") && !response["user"].is_null()) {
-            // Create User from response
-            int id = response["user"].contains("id") ? response["user"]["id"].get<int>() : 0;
-            std::string username = response["user"].contains("username")
-                                       ? response["user"]["username"].get<std::string>()
-                                       : "";
-            std::string email = response["user"].contains("email") ? response["user"]["email"].get<std::string>() : "";
-            std::string fullName = response["user"].contains("fullName")
-                                       ? response["user"]["fullName"].get<std::string>()
-                                       : "";
-
-            User user(id, username, email, fullName);
-
-            LOG_INFO("User logged in successfully: id={}", user.getId());
-
-            // Set as current user
-            _currentUser = user;
-
-            return user;
-        } else {
-            std::string errorMsg = response.contains("message")
-                                       ? response["message"].get<std::string>()
-                                       : "Unknown error";
-            LOG_ERROR("Error logging in user: {}", errorMsg);
-            return std::nullopt;
-        }
-    } catch (const std::exception &ex) {
-        LOG_ERROR("Error logging in user: {}", ex.what());
-        return std::nullopt;
+    if (user) {
+        // Set as current user
+        _currentUser = *user;
+        LOG_INFO("User logged in successfully: id={}", user->getId());
     }
+
+    return user;
 }

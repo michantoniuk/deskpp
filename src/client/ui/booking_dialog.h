@@ -9,7 +9,7 @@
 #include <QDate>
 #include <QDateEdit>
 #include <QGroupBox>
-#include "common/models.h"
+#include "common/model/model.h"
 #include "../net/api_client.h"
 
 class BookingDialog : public QDialog {

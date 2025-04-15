@@ -63,12 +63,20 @@ include_directories(
         ${SQLite3_INCLUDE_DIRS}
 )
 
-# Common sources
+# Common sources (shared between client and server)
 set(COMMON_SOURCES
-        src/common/entity.h
-        src/common/repository.h
-        src/common/models.h
-        src/common/models.cpp
+        src/common/logger.h
+        src/common/app_settings.h
+        src/common/model/model.h
+        src/common/model/entity.h
+        src/common/model/user.h
+        src/common/model/user.cpp
+        src/common/model/building.h
+        src/common/model/building.cpp
+        src/common/model/desk.h
+        src/common/model/desk.cpp
+        src/common/model/booking.h
+        src/common/model/booking.cpp
 )
 
 # Client sources
@@ -82,14 +90,13 @@ set(CLIENT_SOURCES
         src/client/ui/login_dialog.cpp
         src/client/net/api_client.h
         src/client/net/api_client.cpp
-        src/client/util/logger.h
-        src/client/util/app_settings.h
         src/client/main.cpp
 )
 
 # Server repository sources
 set(SERVER_REPOSITORY_SOURCES
-        src/server/repository/base_repository.h
+        src/server/repository/repository.h
+        src/server/repository/sqlite_repository.h
         src/server/repository/user_repository.h
         src/server/repository/user_repository.cpp
         src/server/repository/building_repository.h
@@ -102,7 +109,7 @@ set(SERVER_REPOSITORY_SOURCES
 
 # Server service sources
 set(SERVER_SERVICE_SOURCES
-        src/server/service/base_service.h
+        src/server/service/service.h
         src/server/service/user_service.h
         src/server/service/user_service.cpp
         src/server/service/booking_service.h
@@ -111,23 +118,22 @@ set(SERVER_SERVICE_SOURCES
 
 # Server API sources
 set(SERVER_API_SOURCES
-        src/server/api/base_controller.h
-        src/server/api/booking_controller.h
-        src/server/api/booking_controller.cpp
-        src/server/api/user_controller.h
-        src/server/api/user_controller.cpp
+        src/server/api/controller/controller.h
+        src/server/api/controller/controller.cpp
+        src/server/api/controller/booking_controller.h
+        src/server/api/controller/booking_controller.cpp
+        src/server/api/controller/user_controller.h
+        src/server/api/controller/user_controller.cpp
         src/server/api/routes.h
         src/server/api/routes.cpp
 )
 
-# Server sources - note the removal of the old model and database files
+# Server sources
 set(SERVER_SOURCES
         ${COMMON_SOURCES}
         ${SERVER_REPOSITORY_SOURCES}
         ${SERVER_SERVICE_SOURCES}
         ${SERVER_API_SOURCES}
-        src/server/util/logger.h
-        src/server/util/app_settings.h
         src/server/main.cpp
 )
 

@@ -1,29 +1,21 @@
 #include "user_service.h"
 #include <regex>
-#include <functional>
-#include "../util/logger.h"
+#include "common/logger.h"
 
 UserService::UserService(UserRepository &userRepository)
-    : _userRepository(userRepository) {
+    : Service<User>(userRepository), _userRepo(userRepository) {
 }
 
 json UserService::getAllUsers() {
-    auto users = _userRepository.findAll();
-    return entityListToJson(users, "users");
+    return getAll("users");
 }
 
 json UserService::getUserById(int id) {
-    auto user = _userRepository.findById(id);
-
-    if (!user) {
-        return errorResponse("User not found");
-    }
-
-    return successResponse({{"user", user->toJson()}});
+    return getById(id, "user", "User not found");
 }
 
 json UserService::getUserByUsername(const std::string &username) {
-    auto user = _userRepository.findByUsername(username);
+    auto user = _userRepo.findByUsername(username);
 
     if (!user) {
         return errorResponse("User not found");
@@ -42,7 +34,7 @@ json UserService::registerUser(const std::string &username,
     }
 
     // Check if user already exists
-    if (_userRepository.findByUsername(username) || _userRepository.findByEmail(email)) {
+    if (_userRepo.findByUsername(username) || _userRepo.findByEmail(email)) {
         return errorResponse("Username or email already exists");
     }
 
@@ -54,7 +46,7 @@ json UserService::registerUser(const std::string &username,
     user.setPasswordHash(hashPassword(password));
 
     // Create user in repository
-    User createdUser = _userRepository.add(user);
+    User createdUser = _repository.add(user);
 
     // Check if user was created successfully
     if (createdUser.getId() <= 0) {
@@ -72,13 +64,13 @@ json UserService::loginUser(const std::string &username, const std::string &pass
     std::string passwordHash = hashPassword(password);
 
     // Validate credentials
-    bool isValid = _userRepository.validateCredentials(username, passwordHash);
+    bool isValid = _userRepo.validateCredentials(username, passwordHash);
     if (!isValid) {
         return errorResponse("Invalid username or password");
     }
 
     // Get user data
-    auto user = _userRepository.findByUsername(username);
+    auto user = _userRepo.findByUsername(username);
     if (!user) {
         return errorResponse("Error retrieving user data");
     }
@@ -91,7 +83,7 @@ json UserService::loginUser(const std::string &username, const std::string &pass
 
 json UserService::updateUser(int id, const json &userData) {
     // Get existing user
-    auto existingUser = _userRepository.findById(id);
+    auto existingUser = _repository.findById(id);
     if (!existingUser) {
         return errorResponse("User not found");
     }
@@ -117,7 +109,7 @@ json UserService::updateUser(int id, const json &userData) {
     }
 
     // Update user in repository
-    bool success = _userRepository.update(updatedUser);
+    bool success = _repository.update(updatedUser);
     if (!success) {
         return errorResponse("Error updating user");
     }
@@ -129,21 +121,7 @@ json UserService::updateUser(int id, const json &userData) {
 }
 
 json UserService::deleteUser(int id) {
-    // Check if user exists
-    auto user = _userRepository.findById(id);
-    if (!user) {
-        return errorResponse("User not found");
-    }
-
-    // Delete user
-    bool success = _userRepository.remove(id);
-    if (!success) {
-        return errorResponse("Error deleting user");
-    }
-
-    return successResponse({
-        {"message", "User deleted successfully"}
-    });
+    return removeById(id, "User deleted successfully", "User not found");
 }
 
 bool UserService::validateUserData(const std::string &username,
@@ -170,8 +148,5 @@ bool UserService::validateUserData(const std::string &username,
 }
 
 std::string UserService::hashPassword(const std::string &password) {
-    // Simple hashing for demonstration purposes
-    std::hash<std::string> hasher;
-    size_t hash = hasher(password);
-    return std::to_string(hash);
+    return UserRepository::hashPassword(password);
 }

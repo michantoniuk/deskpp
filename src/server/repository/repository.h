@@ -1,12 +1,11 @@
-#ifndef COMMON_REPOSITORY_H
-#define COMMON_REPOSITORY_H
+#ifndef REPOSITORY_H
+#define REPOSITORY_H
 
 #include <vector>
 #include <optional>
 #include <functional>
-#include "entity.h"
 
-// Generic repository template for entity operations
+// Generic repository interface for entity operations
 template<typename T>
 class Repository {
 public:
@@ -25,7 +24,7 @@ public:
 
     virtual bool remove(int id) = 0;
 
-    // Additional helpful methods
+    // Generic search method
     virtual std::vector<T> findBy(std::function<bool(const T &)> predicate) {
         auto all = findAll();
         std::vector<T> filtered;
@@ -40,4 +39,4 @@ public:
     }
 };
 
-#endif // COMMON_REPOSITORY_H
+#endif // REPOSITORY_H

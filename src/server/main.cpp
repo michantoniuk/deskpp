@@ -3,8 +3,8 @@
 #include <memory>
 #include <crow.h>
 #include <SQLiteCpp/SQLiteCpp.h>
-#include "api/booking_controller.h"
-#include "api/user_controller.h"
+#include "api/controller/booking_controller.h"
+#include "api/controller/user_controller.h"
 #include "api/routes.h"
 #include "service/user_service.h"
 #include "service/booking_service.h"
@@ -12,8 +12,8 @@
 #include "repository/building_repository.h"
 #include "repository/desk_repository.h"
 #include "repository/booking_repository.h"
-#include "util/logger.h"
-#include "util/app_settings.h"
+#include "common/logger.h"
+#include "common/app_settings.h"
 
 int main(int argc, char *argv[]) {
     // Parse command-line arguments
@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
     settings.parseCommandLine(argc, argv);
 
     // Initialize logger
-    initLogger(settings.isVerboseLogging());
+    initLogger("DeskPP", settings.isVerboseLogging());
     LOG_INFO("Starting DeskPP server on port {}", settings.getPort());
     LOG_INFO("Using database: {}", settings.getDatabasePath());
 

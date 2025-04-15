@@ -1,7 +1,7 @@
 #include "booking_view.h"
 #include "booking_dialog.h"
 #include "login_dialog.h"
-#include "../util/logger.h"
+#include "common/logger.h"
 #include <QVBoxLayout>
 #include <QGroupBox>
 #include <QMessageBox>
@@ -9,70 +9,16 @@
 #include <QStatusBar>
 #include <algorithm>
 
-// Default constructor - creates its own ApiClient instance
-BookingView::BookingView(QWidget *parent)
-    : QMainWindow(parent),
-      centralWidget(new QWidget(this)),
-      calendar(new QCalendarWidget(this)),
-      selectBuilding(new QComboBox(this)),
-      selectFloor(new QComboBox(this)),
-      infoLabel(new QLabel(this)),
-      userInfoLabel(new QLabel(this)),
-      deskMapLayout(new QGridLayout()),
-      deskMapContainer(new QWidget(this)),
-      _apiClient(*(new ApiClient(this))), // Create a new instance
-      _ownsApiClient(true), // This constructor owns the API client
-      _selectedBuilding(1),
-      _selectedFloor(1),
-      _selectedDate(QDate::currentDate()) {
-    LOG_INFO("BookingView created with default ApiClient (localhost:8080)");
-
-    setCentralWidget(centralWidget);
-    initializeUI();
-    initializeMenus();
-
-    connect(calendar, &QCalendarWidget::clicked, this, &BookingView::dateChanged);
-    connect(selectBuilding, &QComboBox::currentIndexChanged, this, &BookingView::buildingChanged);
-
-    setWindowTitle("DeskPP - Desk Booking System");
-    resize(800, 600);
-
-    // Show login dialog automatically on startup if not logged in
-    QTimer::singleShot(500, this, &BookingView::showLoginDialog);
-
-    if (_apiClient.isConnected()) {
-        statusBar()->showMessage("Connected to server. Select a desk to view details or make a booking", 5000);
-        buildingChanged(0); // Select first building to load
-    } else {
-        QString errorMsg = "Cannot connect to server. Check if the server is running.";
-        statusBar()->showMessage(errorMsg, 0); // Show message until canceled
-        QMessageBox::critical(this, "Connection Error",
-                              errorMsg + "\nApplication will run in offline mode with limited functionality.");
-    }
-}
-
-// Constructor that accepts an existing ApiClient instance
 BookingView::BookingView(QWidget *parent, ApiClient &apiClient)
     : QMainWindow(parent),
-      centralWidget(new QWidget(this)),
-      calendar(new QCalendarWidget(this)),
-      selectBuilding(new QComboBox(this)),
-      selectFloor(new QComboBox(this)),
-      infoLabel(new QLabel(this)),
-      userInfoLabel(new QLabel(this)),
-      deskMapLayout(new QGridLayout()),
-      deskMapContainer(new QWidget(this)),
-      _apiClient(apiClient), // Use the passed instance
-      _ownsApiClient(false), // This constructor doesn't own the ApiClient instance
+      _apiClient(apiClient),
+      _ownsApiClient(false),
       _selectedBuilding(1),
       _selectedFloor(1),
       _selectedDate(QDate::currentDate()) {
-    setCentralWidget(centralWidget);
-    initializeUI();
+    setupUi();
     initializeMenus();
-
-    connect(calendar, &QCalendarWidget::clicked, this, &BookingView::dateChanged);
-    connect(selectBuilding, &QComboBox::currentIndexChanged, this, &BookingView::buildingChanged);
+    setupConnections();
 
     setWindowTitle("DeskPP - Desk Booking System");
     resize(800, 600);
@@ -80,22 +26,132 @@ BookingView::BookingView(QWidget *parent, ApiClient &apiClient)
     // Show login dialog automatically on startup if not logged in
     QTimer::singleShot(500, this, &BookingView::showLoginDialog);
 
-    if (_apiClient.isConnected()) {
-        statusBar()->showMessage("Connected to server. Select a desk to view details or make a booking", 5000);
-        buildingChanged(0); // Select first building to load
-    } else {
-        QString errorMsg = "Cannot connect to server. Check if the server is running.";
-        statusBar()->showMessage(errorMsg, 0); // Show message until canceled
-        QMessageBox::critical(this, "Connection Error",
-                              errorMsg + "\nApplication will run in offline mode with limited functionality.");
-    }
+    checkServerConnection();
+}
+
+// Default constructor - creates its own ApiClient instance
+BookingView::BookingView(QWidget *parent)
+    : BookingView(parent, *(new ApiClient(this))) {
+    _ownsApiClient = true; // This constructor owns the API client
+    LOG_INFO("BookingView created with default ApiClient (localhost:8080)");
 }
 
 // Destructor to clean up owned resources
 BookingView::~BookingView() {
-    // Clean up the API client instance if we own it
     if (_ownsApiClient) {
         delete &_apiClient;
+    }
+}
+
+void BookingView::setupUi() {
+    centralWidget = new QWidget(this);
+    setCentralWidget(centralWidget);
+
+    auto mainLayout = new QVBoxLayout(centralWidget);
+
+    // Setup top section with calendar and options
+    auto topLayout = new QHBoxLayout();
+
+    // Calendar panel
+    auto calendarPanel = new QGroupBox("Select Date", this);
+    auto calendarLayout = new QVBoxLayout(calendarPanel);
+    calendar = new QCalendarWidget(this);
+    calendarLayout->addWidget(calendar);
+    topLayout->addWidget(calendarPanel);
+
+    // Options panel
+    auto optionsPanel = new QGroupBox("Selection Options", this);
+    auto optionsLayout = new QVBoxLayout(optionsPanel);
+
+    // Building selection
+    auto buildingLayout = new QHBoxLayout();
+    buildingLayout->addWidget(new QLabel("Building:", this));
+    selectBuilding = new QComboBox(this);
+    buildingLayout->addWidget(selectBuilding);
+    optionsLayout->addLayout(buildingLayout);
+
+    // Floor selection
+    auto floorLayout = new QHBoxLayout();
+    floorLayout->addWidget(new QLabel("Floor:", this));
+    selectFloor = new QComboBox(this);
+    floorLayout->addWidget(selectFloor);
+    optionsLayout->addLayout(floorLayout);
+
+    // Info labels
+    infoLabel = new QLabel(QString("Office plan for %1").arg(QDate::currentDate().toString("MM/dd/yyyy")), this);
+    infoLabel->setAlignment(Qt::AlignCenter);
+    optionsLayout->addWidget(infoLabel);
+
+    userInfoLabel = new QLabel("Not logged in", this);
+    userInfoLabel->setAlignment(Qt::AlignCenter);
+    userInfoLabel->setStyleSheet("font-weight: bold; color: blue;");
+    optionsLayout->addWidget(userInfoLabel);
+
+    // Populate combo boxes
+    selectBuilding->addItem("Krakow A");
+    selectBuilding->addItem("Warsaw B");
+    selectFloor->addItem("1st floor");
+
+    topLayout->addWidget(optionsPanel);
+    mainLayout->addLayout(topLayout);
+
+    // Desk map panel
+    auto mapPanel = new QGroupBox("Desk Map", this);
+    auto mapLayout = new QVBoxLayout(mapPanel);
+
+    auto refreshButton = new QPushButton("Refresh Data", this);
+    connect(refreshButton, &QPushButton::clicked, this, &BookingView::refreshView);
+    mapLayout->addWidget(refreshButton);
+
+    // Desk map grid
+    deskMapLayout = new QGridLayout();
+    deskMapContainer = new QWidget(this);
+    deskMapContainer->setLayout(deskMapLayout);
+
+    auto scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setWidget(deskMapContainer);
+
+    mapLayout->addWidget(scrollArea);
+    mainLayout->addWidget(mapPanel, 1); // Set stretch so map takes more space
+}
+
+void BookingView::initializeMenus() {
+    // Create user menu
+    _userMenu = menuBar()->addMenu("User");
+
+    // Login action
+    _loginAction = new QAction("Login", this);
+    connect(_loginAction, &QAction::triggered, this, &BookingView::showLoginDialog);
+    _userMenu->addAction(_loginAction);
+
+    // Logout action
+    _logoutAction = new QAction("Logout", this);
+    connect(_logoutAction, &QAction::triggered, this, &BookingView::handleUserLogout);
+    _userMenu->addAction(_logoutAction);
+
+    // User profile action
+    _userProfileAction = new QAction("My Profile", this);
+    _userMenu->addAction(_userProfileAction);
+
+    // Initially set visibility based on login state
+    updateUserInterface();
+}
+
+void BookingView::setupConnections() {
+    connect(calendar, &QCalendarWidget::clicked, this, &BookingView::dateChanged);
+    connect(selectBuilding, &QComboBox::currentIndexChanged, this, &BookingView::buildingChanged);
+}
+
+void BookingView::checkServerConnection() {
+    if (_apiClient.isConnected()) {
+        statusBar()->showMessage("Connected to server. Select a desk to view details or make a booking", 5000);
+        buildingChanged(0); // Select first building to load
+    } else {
+        QString errorMsg = "Cannot connect to server. Check if the server is running.";
+        statusBar()->showMessage(errorMsg, 0); // Show message until canceled
+        QMessageBox::critical(this, "Connection Error",
+                              errorMsg + "\nApplication will run in offline mode with limited functionality.");
     }
 }
 
@@ -109,7 +165,7 @@ void BookingView::buildingChanged(int index) {
             return;
         }
 
-        _desks = getDesksFromServer(_selectedBuilding);
+        _desks = _apiClient.getDesks(_selectedBuilding);
         updateDeskMap();
         statusBar()->showMessage(QString("Loaded %1 desks from server").arg(_desks.size()), 3000);
     } catch (const std::exception &e) {
@@ -164,7 +220,7 @@ void BookingView::refreshView() {
     }
 
     try {
-        _desks = getDesksFromServer(_selectedBuilding);
+        _desks = _apiClient.getDesks(_selectedBuilding);
         updateDeskMap();
         statusBar()->showMessage("Data refreshed successfully", 3000);
     } catch (const std::exception &e) {
@@ -242,87 +298,6 @@ void BookingView::updateUserInterface() {
     }
 }
 
-void BookingView::initializeUI() {
-    auto mainLayout = new QVBoxLayout(centralWidget);
-    auto topLayout = new QHBoxLayout();
-    auto calendarPanel = new QGroupBox("Select Date", this);
-    auto calendarLayout = new QVBoxLayout(calendarPanel);
-    calendarLayout->addWidget(calendar);
-    topLayout->addWidget(calendarPanel);
-
-    auto optionsPanel = new QGroupBox("Selection Options", this);
-    auto optionsLayout = new QVBoxLayout(optionsPanel);
-
-    auto buildingLayout = new QHBoxLayout();
-    buildingLayout->addWidget(new QLabel("Building:", this));
-    buildingLayout->addWidget(selectBuilding);
-    optionsLayout->addLayout(buildingLayout);
-
-    auto floorLayout = new QHBoxLayout();
-    floorLayout->addWidget(new QLabel("Floor:", this));
-    floorLayout->addWidget(selectFloor);
-    optionsLayout->addLayout(floorLayout);
-
-    infoLabel = new QLabel(QString("Office plan for %1").arg(QDate::currentDate().toString("MM/dd/yyyy")), this);
-    infoLabel->setAlignment(Qt::AlignCenter);
-    optionsLayout->addWidget(infoLabel);
-
-    // Add user info label
-    userInfoLabel = new QLabel("Not logged in", this);
-    userInfoLabel->setAlignment(Qt::AlignCenter);
-    userInfoLabel->setStyleSheet("font-weight: bold; color: blue;");
-    optionsLayout->addWidget(userInfoLabel);
-
-    selectBuilding->addItem("Krakow A");
-    selectBuilding->addItem("Warsaw B");
-    selectFloor->addItem("1st floor");
-
-    topLayout->addWidget(optionsPanel);
-    mainLayout->addLayout(topLayout);
-
-    auto mapPanel = new QGroupBox("Desk Map", this);
-    auto mapLayout = new QVBoxLayout(mapPanel);
-
-    auto refreshButton = new QPushButton("Refresh Data", this);
-    connect(refreshButton, &QPushButton::clicked, this, &BookingView::refreshView);
-    mapLayout->addWidget(refreshButton);
-
-    deskMapContainer->setLayout(deskMapLayout);
-
-    auto scrollArea = new QScrollArea(this);
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setWidget(deskMapContainer);
-
-    mapLayout->addWidget(scrollArea);
-    mainLayout->addWidget(mapPanel, 1); // Set stretch so map takes more space
-}
-
-void BookingView::initializeMenus() {
-    // Create user menu
-    _userMenu = menuBar()->addMenu("User");
-
-    // Login action
-    _loginAction = new QAction("Login", this);
-    connect(_loginAction, &QAction::triggered, this, &BookingView::showLoginDialog);
-    _userMenu->addAction(_loginAction);
-
-    // Logout action
-    _logoutAction = new QAction("Logout", this);
-    connect(_logoutAction, &QAction::triggered, this, &BookingView::handleUserLogout);
-    _userMenu->addAction(_logoutAction);
-
-    // User profile action
-    _userProfileAction = new QAction("My Profile", this);
-    _userMenu->addAction(_userProfileAction);
-
-    // Initially set visibility based on login state
-    updateUserInterface();
-}
-
-std::vector<Desk> BookingView::getDesksFromServer(int buildingId) {
-    return _apiClient.getDesks(buildingId);
-}
-
 void BookingView::updateDeskMap() {
     // Clear existing buttons
     for (auto button: _deskButtons) {
@@ -336,100 +311,112 @@ void BookingView::updateDeskMap() {
     for (size_t i = 0; i < _desks.size(); ++i) {
         const auto &desk = _desks[i];
 
-        auto button = new QPushButton(QString::fromStdString(desk.getDeskId()), this);
-        button->setMinimumSize(100, 80);
-        button->setMaximumSize(150, 120);
-
-        QString buttonStyle;
-        QString text = QString::fromStdString(desk.getDeskId());
-
-        // Get all bookings sorted by date
-        auto allBookings = desk.getBookings();
-
-        // Sort bookings by start date
-        std::sort(allBookings.begin(), allBookings.end(),
-                  [](const Booking &a, const Booking &b) {
-                      return a.getDateFrom() < b.getDateFrom();
-                  }
-        );
-
-        // Get current user ID (if logged in)
-        int currentUserId = -1;
-        if (_apiClient.isLoggedIn() && _apiClient.getCurrentUser()) {
-            currentUserId = _apiClient.getCurrentUser()->getId();
-        }
-
-        // Check if the desk is booked specifically on the selected date
-        if (desk.isBookedOnDate(_selectedDate)) {
-            // Desk is booked for the selected date - show as unavailable
-            buttonStyle = "background-color: #d7ccc8; color: black;"; // Light brown for booked
-
-            // Get booking that contains this date
-            auto bookingsOnDate = desk.getBookingsContainingDate(_selectedDate);
-            if (!bookingsOnDate.empty()) {
-                const Booking &booking = bookingsOnDate[0];
-
-                // Check if this is the user's own booking
-                if (booking.getUserId() == currentUserId) {
-                    buttonStyle = "background-color: #bbdefb; color: black;"; // Light blue for own booking
-                    text += "\nYours on";
-                } else {
-                    text += "\nBooked";
-                }
-
-                if (booking.getDateFrom() != booking.getDateTo()) {
-                    text += " " + booking.getDateFrom().toString("MM/dd") +
-                            "-" + booking.getDateTo().toString("MM/dd");
-                } else {
-                    text += " " + booking.getDateFrom().toString("MM/dd");
-                }
-            }
-        } else {
-            // Desk is available for the selected date - show as available
-            buttonStyle = "background-color: #a5d6a7; color: black;"; // Green for available
-
-            // Find the next upcoming booking after the selected date
-            QDate nextBookingDate;
-            QDate nextBookingEndDate;
-
-            for (const auto &booking: allBookings) {
-                if (booking.getDateFrom() >= _selectedDate) {
-                    // This is a future booking
-                    if (nextBookingDate.isNull() || booking.getDateFrom() < nextBookingDate) {
-                        nextBookingDate = booking.getDateFrom();
-                        nextBookingEndDate = booking.getDateTo();
-                    }
-                }
-            }
-
-            // Add information about the next booking if it exists
-            if (!nextBookingDate.isNull()) {
-                if (nextBookingDate == _selectedDate.addDays(1)) {
-                    // If the next booking is tomorrow, show it as "Tomorrow"
-                    text += "\nBooked tomorrow";
-                } else {
-                    // Otherwise show the date
-                    text += "\nNext booking:";
-                    if (nextBookingDate == nextBookingEndDate) {
-                        text += " " + nextBookingDate.toString("MM/dd");
-                    } else {
-                        text += " " + nextBookingDate.toString("MM/dd") +
-                                "-" + nextBookingEndDate.toString("MM/dd");
-                    }
-                }
-            }
-        }
-
-        button->setStyleSheet(buttonStyle);
-        button->setText(text);
-
-        button->setProperty("index", static_cast<int>(i));
-        connect(button, &QPushButton::clicked, this, &BookingView::deskClicked);
+        auto button = createDeskButton(desk, i);
 
         int row = i / numColumns;
         int column = i % numColumns;
         deskMapLayout->addWidget(button, row, column);
 
         _deskButtons.push_back(button);
+    }
+}
+
+QPushButton *BookingView::createDeskButton(const Desk &desk, int index) {
+    auto button = new QPushButton(QString::fromStdString(desk.getDeskId()), this);
+    button->setMinimumSize(100, 80);
+    button->setMaximumSize(150, 120);
+
+    // Style and text
+    QString buttonStyle;
+    QString text = QString::fromStdString(desk.getDeskId());
+
+    // Get current user ID (if logged in)
+    int currentUserId = -1;
+    if (_apiClient.isLoggedIn() && _apiClient.getCurrentUser()) {
+        currentUserId = _apiClient.getCurrentUser()->getId();
+    }
+
+    // Format the desk status
+    formatDeskStatus(desk, text, buttonStyle, currentUserId);
+
+    button->setStyleSheet(buttonStyle);
+    button->setText(text);
+
+    button->setProperty("index", static_cast<int>(index));
+    connect(button, &QPushButton::clicked, this, &BookingView::deskClicked);
+
+    return button;
+}
+
+void BookingView::formatDeskStatus(const Desk &desk, QString &text, QString &buttonStyle, int currentUserId) {
+    // Get all bookings sorted by date
+    auto allBookings = desk.getBookings();
+
+    // Sort bookings by start date
+    std::sort(allBookings.begin(), allBookings.end(),
+              [](const Booking &a, const Booking &b) {
+                  return a.getDateFrom() < b.getDateFrom();
+              }
+    );
+
+    // Check if the desk is booked specifically on the selected date
+    if (desk.isBookedOnDate(_selectedDate)) {
+        // Desk is booked for the selected date - show as unavailable
+        buttonStyle = "background-color: #d7ccc8; color: black;"; // Light brown for booked
+
+        // Get booking that contains this date
+        auto bookingsOnDate = desk.getBookingsContainingDate(_selectedDate);
+        if (!bookingsOnDate.empty()) {
+            const Booking &booking = bookingsOnDate[0];
+
+            // Check if this is the user's own booking
+            if (booking.getUserId() == currentUserId) {
+                buttonStyle = "background-color: #bbdefb; color: black;"; // Light blue for own booking
+                text += "\nYours on";
+            } else {
+                text += "\nBooked";
+            }
+
+            if (booking.getDateFrom() != booking.getDateTo()) {
+                text += " " + booking.getDateFrom().toString("MM/dd") +
+                        "-" + booking.getDateTo().toString("MM/dd");
+            } else {
+                text += " " + booking.getDateFrom().toString("MM/dd");
+            }
+        }
+    } else {
+        // Desk is available for the selected date - show as available
+        buttonStyle = "background-color: #a5d6a7; color: black;"; // Green for available
+
+        // Find the next upcoming booking after the selected date
+        QDate nextBookingDate;
+        QDate nextBookingEndDate;
+
+        for (const auto &booking: allBookings) {
+            if (booking.getDateFrom() >= _selectedDate) {
+                // This is a future booking
+                if (nextBookingDate.isNull() || booking.getDateFrom() < nextBookingDate) {
+                    nextBookingDate = booking.getDateFrom();
+                    nextBookingEndDate = booking.getDateTo();
+                }
+            }
+        }
+
+        // Add information about the next booking if it exists
+        if (!nextBookingDate.isNull()) {
+            if (nextBookingDate == _selectedDate.addDays(1)) {
+                // If the next booking is tomorrow, show it as "Tomorrow"
+                text += "\nBooked tomorrow";
+            } else {
+                // Otherwise show the date
+                text += "\nNext booking:";
+                if (nextBookingDate == nextBookingEndDate) {
+                    text += " " + nextBookingDate.toString("MM/dd");
+                } else {
+                    text += " " + nextBookingDate.toString("MM/dd") +
+                            "-" + nextBookingEndDate.toString("MM/dd");
+                }
+            }
+        }
     }
 }

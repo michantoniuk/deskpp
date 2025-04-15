@@ -2,12 +2,12 @@
 #define SERVER_ROUTES_H
 
 #include <crow.h>
-#include "booking_controller.h"
-#include "user_controller.h"
+#include "controller/booking_controller.h"
+#include "controller/user_controller.h"
 
 /**
  * Register all API routes with the Crow application
  */
-void registerRoutes(crow::SimpleApp & app, BookingController & bookingController, UserController & userController);
+void registerRoutes(crow::SimpleApp &app, BookingController &bookingController, UserController &userController);
 
 #endif // SERVER_ROUTES_H

@@ -2,9 +2,9 @@
 #include <QMessageBox>
 #include "ui/booking_view.h"
 #include "net/api_client.h"
-#include "util/logger.h"
-#include "util/app_settings.h"
-#include "common/models.h"
+#include "common/logger.h"
+#include "common/app_settings.h"
+#include "common/model/model.h"
 
 int main(int argc, char *argv[]) {
     QApplication application(argc, argv);
@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
     settings.parseCommandLine(application);
 
     // Initialize logger
-    initLogger(settings.isVerboseLogging());
+    initLogger("DeskPP", settings.isVerboseLogging());
     LOG_INFO("Starting DeskPP client");
 
     // Get server settings

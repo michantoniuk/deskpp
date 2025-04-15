@@ -1,7 +1,7 @@
 #ifndef BOOKING_SERVICE_H
 #define BOOKING_SERVICE_H
 
-#include "base_service.h"
+#include "service.h"
 #include <string>
 #include <nlohmann/json.hpp>
 #include "../repository/building_repository.h"
@@ -10,10 +10,7 @@
 
 using json = nlohmann::json;
 
-/**
- * Service layer for booking operations
- */
-class BookingService : public BaseService {
+class BookingService : public Service<Booking> {
 public:
     BookingService(BuildingRepository &buildingRepository,
                    DeskRepository &deskRepository,
@@ -32,9 +29,12 @@ public:
     json cancelBooking(int bookingId);
 
 private:
-    BuildingRepository &_buildingRepository;
-    DeskRepository &_deskRepository;
-    BookingRepository &_bookingRepository;
+    BuildingRepository &_buildingRepo;
+    DeskRepository &_deskRepo;
+    BookingRepository &_bookingRepo;
+
+    // Helper method for Building entities (since Service<Booking>::entityListToJson works only with Booking entities)
+    json buildingListToJson(const std::vector<Building> &buildings, const std::string &key);
 
     // Validation helpers
     bool validateBookingDates(const std::string &dateFrom, const std::string &dateTo);
