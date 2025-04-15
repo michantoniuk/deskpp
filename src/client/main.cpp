@@ -4,6 +4,7 @@
 #include "net/api_client.h"
 #include "util/logger.h"
 #include "util/app_settings.h"
+#include "common/models.h"
 
 int main(int argc, char *argv[]) {
     QApplication application(argc, argv);

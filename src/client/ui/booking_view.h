@@ -13,7 +13,7 @@
 #include <QDate>
 #include <QTimer>
 #include <vector>
-#include "../model/models.h"
+#include "common/models.h"
 #include "../net/api_client.h"
 
 class BookingView : public QMainWindow {

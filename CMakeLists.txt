@@ -63,10 +63,17 @@ include_directories(
         ${SQLite3_INCLUDE_DIRS}
 )
 
+# Common sources
+set(COMMON_SOURCES
+        src/common/entity.h
+        src/common/repository.h
+        src/common/models.h
+        src/common/models.cpp
+)
+
 # Client sources
 set(CLIENT_SOURCES
-        src/client/model/models.h
-        src/client/model/models.cpp
+        ${COMMON_SOURCES}
         src/client/ui/booking_view.h
         src/client/ui/booking_view.cpp
         src/client/ui/booking_dialog.h
@@ -80,17 +87,45 @@ set(CLIENT_SOURCES
         src/client/main.cpp
 )
 
-# Server sources
+# Server repository sources
+set(SERVER_REPOSITORY_SOURCES
+        src/server/repository/base_repository.h
+        src/server/repository/user_repository.h
+        src/server/repository/user_repository.cpp
+        src/server/repository/building_repository.h
+        src/server/repository/building_repository.cpp
+        src/server/repository/desk_repository.h
+        src/server/repository/desk_repository.cpp
+        src/server/repository/booking_repository.h
+        src/server/repository/booking_repository.cpp
+)
+
+# Server service sources
+set(SERVER_SERVICE_SOURCES
+        src/server/service/base_service.h
+        src/server/service/user_service.h
+        src/server/service/user_service.cpp
+        src/server/service/booking_service.h
+        src/server/service/booking_service.cpp
+)
+
+# Server API sources
+set(SERVER_API_SOURCES
+        src/server/api/base_controller.h
+        src/server/api/booking_controller.h
+        src/server/api/booking_controller.cpp
+        src/server/api/user_controller.h
+        src/server/api/user_controller.cpp
+        src/server/api/routes.h
+        src/server/api/routes.cpp
+)
+
+# Server sources - note the removal of the old model and database files
 set(SERVER_SOURCES
-        src/server/model/models.h
-        src/server/model/models.cpp
-        src/server/api/controllers.h
-        src/server/api/controllers.cpp
-        src/server/api/api_routes.cpp
-        src/server/service/services.h
-        src/server/service/services.cpp
-        src/server/db/database.h
-        src/server/db/database.cpp
+        ${COMMON_SOURCES}
+        ${SERVER_REPOSITORY_SOURCES}
+        ${SERVER_SERVICE_SOURCES}
+        ${SERVER_API_SOURCES}
         src/server/util/logger.h
         src/server/util/app_settings.h
         src/server/main.cpp
@@ -114,4 +149,5 @@ target_link_libraries(deskpp_server PRIVATE
         SQLiteCpp
         spdlog::spdlog
         Crow::Crow
+        Qt6::Core
 )
