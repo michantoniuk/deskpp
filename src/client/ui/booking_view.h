@@ -15,6 +15,7 @@
 #include <vector>
 #include "common/model/model.h"
 #include "../net/api_client.h"
+#include "admin_dialog.h"
 
 class BookingView : public QMainWindow {
     Q_OBJECT
@@ -43,6 +44,8 @@ private slots:
     void handleUserLogout();
 
     void updateUserInterface();
+
+    void showAdminDialog();
 
 private:
     void setupUi();
@@ -88,6 +91,11 @@ private:
     QAction *_loginAction;
     QAction *_logoutAction;
     QAction *_userProfileAction;
+
+    // Admin menu
+    QMenu *_adminMenu;
+    QAction *_adminModeAction;
+    QAction *_adminPanelAction;
 };
 
 #endif // BOOKING_VIEW_H

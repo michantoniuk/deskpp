@@ -61,6 +61,8 @@ int main(int argc, char *argv[]) {
                     "name TEXT NOT NULL,"
                     "building_id INTEGER NOT NULL,"
                     "floor_number INTEGER NOT NULL,"
+                    "location_x INTEGER DEFAULT 0,"
+                    "location_y INTEGER DEFAULT 0,"
                     "FOREIGN KEY (building_id) REFERENCES buildings(id) ON DELETE CASCADE"
                     ");");
 
@@ -156,12 +158,13 @@ int main(int argc, char *argv[]) {
         // Initialize controllers
         BookingController bookingController(bookingService);
         UserController userController(userService);
+        AdminController adminController(bookingService);
 
         // Initialize Crow server
         crow::SimpleApp app;
 
         // Register API routes
-        registerRoutes(app, bookingController, userController);
+        registerRoutes(app, bookingController, userController, adminController);
 
         // Log startup info
         LOG_INFO("Server initialized and ready to accept connections");

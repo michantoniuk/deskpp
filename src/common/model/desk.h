@@ -12,9 +12,8 @@ class Desk : public Entity {
 public:
     Desk() = default;
 
-    Desk(int id, const std::string &deskId, const std::string &buildingId, int floorNumber);
-
-    Desk(int id, const std::string &deskId, int buildingId, int floorNumber);
+    Desk(int id, const std::string &deskId, const std::string &buildingId, int floorNumber,
+         int locationX = 0, int locationY = 0);
 
     // From Entity
     json toJson() const override;
@@ -50,10 +49,14 @@ public:
     const std::string &getDeskId() const { return _deskId; }
     const std::string &getBuildingId() const { return _buildingId; }
     int getFloorNumber() const { return _floorNumber; }
+    int getLocationX() const { return _locationX; }
+    int getLocationY() const { return _locationY; }
 
     void setDeskId(const std::string &deskId) { _deskId = deskId; }
     void setBuildingId(const std::string &buildingId) { _buildingId = buildingId; }
     void setFloorNumber(int floorNumber) { _floorNumber = floorNumber; }
+    void setLocationX(int x) { _locationX = x; }
+    void setLocationY(int y) { _locationY = y; }
 
     // Legacy methods for backward compatibility
     bool isBooked() const { return !isAvailable(); }
@@ -65,6 +68,8 @@ private:
     std::string _buildingId;
     int _floorNumber = 0;
     std::vector<Booking> _bookings;
+    int _locationX = 0;
+    int _locationY = 0;
 
     void sortBookings();
 };

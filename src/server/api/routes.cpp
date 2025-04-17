@@ -1,8 +1,8 @@
 #include "routes.h"
 #include "common/logger.h"
-#include "controller/booking_controller.h"
 
-void registerRoutes(crow::SimpleApp &app, BookingController &bookingController, UserController &userController) {
+void registerRoutes(crow::SimpleApp &app, BookingController &bookingController,
+                    UserController &userController, AdminController &adminController) {
     // Buildings endpoint
     CROW_ROUTE(app, "/api/buildings").methods(crow::HTTPMethod::GET)
     ([&bookingController](const crow::request &req) {
@@ -60,6 +60,38 @@ void registerRoutes(crow::SimpleApp &app, BookingController &bookingController, 
     CROW_ROUTE(app, "/api/users/<int>").methods(crow::HTTPMethod::DELETE)
     ([&userController](int userId) {
         return userController.deleteUser(userId);
+    });
+
+    // Admin routes for building management
+    CROW_ROUTE(app, "/api/admin/buildings").methods(crow::HTTPMethod::POST)
+    ([&adminController](const crow::request &req) {
+        return adminController.addBuilding(req);
+    });
+
+    CROW_ROUTE(app, "/api/admin/buildings/<int>").methods(crow::HTTPMethod::PUT)
+    ([&adminController](const crow::request &req, int buildingId) {
+        return adminController.updateBuilding(buildingId, req);
+    });
+
+    CROW_ROUTE(app, "/api/admin/buildings/<int>").methods(crow::HTTPMethod::DELETE)
+    ([&adminController](int buildingId) {
+        return adminController.deleteBuilding(buildingId);
+    });
+
+    // Admin routes for desk management
+    CROW_ROUTE(app, "/api/admin/desks").methods(crow::HTTPMethod::POST)
+    ([&adminController](const crow::request &req) {
+        return adminController.addDesk(req);
+    });
+
+    CROW_ROUTE(app, "/api/admin/desks/<int>").methods(crow::HTTPMethod::PUT)
+    ([&adminController](const crow::request &req, int deskId) {
+        return adminController.updateDesk(deskId, req);
+    });
+
+    CROW_ROUTE(app, "/api/admin/desks/<int>").methods(crow::HTTPMethod::DELETE)
+    ([&adminController](int deskId) {
+        return adminController.deleteDesk(deskId);
     });
 
     LOG_INFO("API routes registered successfully");

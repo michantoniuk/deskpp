@@ -88,6 +88,8 @@ set(CLIENT_SOURCES
         src/client/ui/booking_dialog.cpp
         src/client/ui/login_dialog.h
         src/client/ui/login_dialog.cpp
+        src/client/ui/admin_dialog.h
+        src/client/ui/admin_dialog.cpp
         src/client/net/api_client.h
         src/client/net/api_client.cpp
         src/client/main.cpp
@@ -124,6 +126,8 @@ set(SERVER_API_SOURCES
         src/server/api/controller/booking_controller.cpp
         src/server/api/controller/user_controller.h
         src/server/api/controller/user_controller.cpp
+        src/server/api/controller/admin_controller.h
+        src/server/api/controller/admin_controller.cpp
         src/server/api/routes.h
         src/server/api/routes.cpp
 )

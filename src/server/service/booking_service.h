@@ -28,6 +28,18 @@ public:
 
     json cancelBooking(int bookingId);
 
+    json addBuilding(const std::string &name, const std::string &address);
+
+    json updateBuilding(int id, const std::string &name, const std::string &address);
+
+    json deleteBuilding(int id);
+
+    json addDesk(const std::string &deskId, int buildingId, int floorNumber, int locationX = 0, int locationY = 0);
+
+    json updateDesk(int id, const json &deskData);
+
+    json deleteDesk(int id);
+
 private:
     BuildingRepository &_buildingRepo;
     DeskRepository &_deskRepo;

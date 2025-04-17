@@ -134,6 +134,32 @@ void BookingView::initializeMenus() {
     _userProfileAction = new QAction("My Profile", this);
     _userMenu->addAction(_userProfileAction);
 
+    // Create admin menu
+    _adminMenu = menuBar()->addMenu("Admin");
+
+    // Admin mode action
+    _adminModeAction = new QAction("Enable Admin Mode", this);
+    _adminModeAction->setCheckable(true);
+    connect(_adminModeAction, &QAction::triggered, this, [this](bool checked) {
+        _apiClient.setAdminMode(checked);
+        _adminPanelAction->setEnabled(checked);
+
+        if (checked) {
+            statusBar()->showMessage("Admin mode enabled", 3000);
+        } else {
+            statusBar()->showMessage("Admin mode disabled", 3000);
+        }
+    });
+    _adminMenu->addAction(_adminModeAction);
+
+    // Admin panel action
+    _adminPanelAction = new QAction("Admin Panel", this);
+    connect(_adminPanelAction, &QAction::triggered, this, &BookingView::showAdminDialog);
+    _adminMenu->addAction(_adminPanelAction);
+
+    // Initially disable admin panel until admin mode is enabled
+    _adminPanelAction->setEnabled(false);
+
     // Initially set visibility based on login state
     updateUserInterface();
 }
@@ -296,28 +322,84 @@ void BookingView::updateUserInterface() {
     } else {
         userInfoLabel->setText("Not logged in");
     }
+
+    // Show admin menu only for logged-in users
+    _adminMenu->menuAction()->setVisible(isLoggedIn);
+
+    // Reset admin mode when logging out
+    if (!isLoggedIn) {
+        _apiClient.setAdminMode(false);
+        _adminModeAction->setChecked(false);
+    }
 }
 
 void BookingView::updateDeskMap() {
-    // Clear existing buttons
-    for (auto button: _deskButtons) {
-        deskMapLayout->removeWidget(button);
-        delete button;
+    // Clear existing desk buttons
+    while (QLayoutItem *item = deskMapLayout->takeAt(0)) {
+        if (QWidget *widget = item->widget()) {
+            widget->deleteLater();
+        }
+        delete item;
     }
     _deskButtons.clear();
 
-    const int numColumns = 4;
+    // Set up grid properties
+    deskMapLayout->setSpacing(10);
+    deskMapLayout->setContentsMargins(10, 10, 10, 10);
 
-    for (size_t i = 0; i < _desks.size(); ++i) {
-        const auto &desk = _desks[i];
+    LOG_INFO("Updating desk map with {} desks", _desks.size());
 
-        auto button = createDeskButton(desk, i);
+    // Check if we have any desks with non-zero coordinates
+    bool useGridLayout = false;
+    for (const auto &desk: _desks) {
+        if (desk.getLocationX() > 0 || desk.getLocationY() > 0) {
+            useGridLayout = true;
+            LOG_INFO("Using grid layout because desk {} has coordinates ({},{})",
+                     desk.getDeskId(), desk.getLocationX(), desk.getLocationY());
+            break;
+        }
+    }
 
-        int row = i / numColumns;
-        int column = i % numColumns;
-        deskMapLayout->addWidget(button, row, column);
+    if (useGridLayout) {
+        // Grid layout based on coordinates
+        LOG_INFO("Using grid layout for desk positioning");
 
-        _deskButtons.push_back(button);
+        for (size_t i = 0; i < _desks.size(); ++i) {
+            const auto &desk = _desks[i];
+            auto button = createDeskButton(desk, i);
+
+            // Use coordinates for positioning (default to auto-placement if both are zero)
+            int x = desk.getLocationX();
+            int y = desk.getLocationY();
+
+            if (x == 0 && y == 0) {
+                // Auto-assign position for desks with zero coordinates
+                x = i % 3; // 3 columns
+                y = i / 3;
+                LOG_INFO("Auto-placing desk {} at position ({},{})", desk.getDeskId(), y, x);
+            } else {
+                LOG_INFO("Placing desk {} at coordinates ({},{})", desk.getDeskId(), y, x);
+            }
+
+            deskMapLayout->addWidget(button, y, x);
+            _deskButtons.push_back(button);
+        }
+    } else {
+        // Standard column layout as fallback
+        LOG_INFO("Using column layout for desk positioning");
+        const int numColumns = 4;
+
+        for (size_t i = 0; i < _desks.size(); ++i) {
+            const auto &desk = _desks[i];
+            auto button = createDeskButton(desk, i);
+
+            int row = i / numColumns;
+            int col = i % numColumns;
+
+            LOG_INFO("Placing desk {} at position ({},{})", desk.getDeskId(), row, col);
+            deskMapLayout->addWidget(button, row, col);
+            _deskButtons.push_back(button);
+        }
     }
 }
 
@@ -419,4 +501,17 @@ void BookingView::formatDeskStatus(const Desk &desk, QString &text, QString &but
             }
         }
     }
+}
+
+void BookingView::showAdminDialog() {
+    if (!_apiClient.isAdmin()) {
+        QMessageBox::warning(this, "Access Denied", "Admin mode must be enabled to access admin panel.");
+        return;
+    }
+
+    AdminDialog adminDialog(_apiClient, this);
+    adminDialog.exec();
+
+    // Refresh the view after admin operations
+    refreshView();
 }

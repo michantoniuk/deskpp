@@ -1,12 +1,10 @@
 #include "desk.h"
 #include <algorithm>
 
-Desk::Desk(int id, const std::string &deskId, const std::string &buildingId, int floorNumber)
-    : Entity(id), _deskId(deskId), _buildingId(buildingId), _floorNumber(floorNumber) {
-}
-
-Desk::Desk(int id, const std::string &deskId, int buildingId, int floorNumber)
-    : Entity(id), _deskId(deskId), _buildingId(std::to_string(buildingId)), _floorNumber(floorNumber) {
+Desk::Desk(int id, const std::string &deskId, const std::string &buildingId, int floorNumber,
+           int locationX, int locationY)
+    : Entity(id), _deskId(deskId), _buildingId(buildingId), _floorNumber(floorNumber),
+      _locationX(locationX), _locationY(locationY) {
 }
 
 json Desk::toJson() const {
@@ -14,12 +12,15 @@ json Desk::toJson() const {
         {"id", getId()},
         {"deskId", _deskId},
         {"buildingId", _buildingId},
-        {"floorNumber", _floorNumber}
+        {"floorNumber", _floorNumber},
+        {"locationX", _locationX},
+        {"locationY", _locationY}
     };
 }
 
 std::string Desk::toString() const {
-    return "Desk: " + _deskId + " (ID: " + std::to_string(getId()) + ")";
+    return "Desk: " + _deskId + " (ID: " + std::to_string(getId()) +
+           ", loc: " + std::to_string(_locationX) + "," + std::to_string(_locationY) + ")";
 }
 
 bool Desk::isAvailable() const {

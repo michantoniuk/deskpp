@@ -52,10 +52,28 @@ public:
     void logoutUser() { _currentUser = std::nullopt; }
     bool isLoggedIn() const { return _currentUser.has_value(); }
 
-private:
+    // Admin operations
+    bool isAdmin() const;
+
+    void setAdminMode(bool isAdmin);
+
+    bool addBuilding(const std::string &name, const std::string &address);
+
+    bool updateBuilding(int id, const std::string &name, const std::string &address);
+
+    bool deleteBuilding(int id);
+
+    bool addDesk(const std::string &deskId, int buildingId, int floorNumber, int locationX = 0, int locationY = 0);
+
+    bool updateDesk(int id, const std::string &deskId, int buildingId, int floorNumber, int locationX = 0,
+                    int locationY = 0);
+
+    bool deleteDesk(int id);
+
     // HTTP request execution with wait for completion
     json executeRequest(const QString &method, const QString &endpoint, const json &data = json::object());
 
+private:
     // Simple request handlers
     std::optional<User> executeUserRequest(const QString &method, const QString &endpoint,
                                            const json &data = json::object());
@@ -71,6 +89,8 @@ private:
 
     // User state
     std::optional<User> _currentUser;
+
+    bool _isAdmin = false;
 };
 
 #endif // API_CLIENT_H
