@@ -5,10 +5,7 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QStackedWidget>
-#include <QLabel>
-#include <QRegularExpression>
 #include "../net/api_client.h"
-#include "common/model/model.h"
 
 class LoginDialog : public QDialog {
     Q_OBJECT
@@ -16,38 +13,28 @@ class LoginDialog : public QDialog {
 public:
     explicit LoginDialog(ApiClient &apiClient, QWidget *parent = nullptr);
 
-signals:
-    void userLoggedIn(const User &user);
-
 private slots:
     void login();
 
     void registerUser();
 
-    void showLoginPage();
+    void switchToRegister();
 
-    void showRegisterPage();
+    void switchToLogin();
 
 private:
-    void setupUI();
+    ApiClient &apiClient;
+    QStackedWidget *stack;
 
-    ApiClient &_apiClient;
-    QStackedWidget *_stackedWidget;
+    // Login page
+    QLineEdit *usernameEdit;
+    QLineEdit *passwordEdit;
 
-    // Login page widgets
-    QLineEdit *_usernameEdit;
-    QLineEdit *_passwordEdit;
-    QPushButton *_loginButton;
-    QPushButton *_registerPageButton;
-
-    // Register page widgets
-    QLineEdit *_regUsernameEdit;
-    QLineEdit *_regPasswordEdit;
-    QLineEdit *_regConfirmPasswordEdit;
-    QLineEdit *_regEmailEdit;
-    QLineEdit *_regFullNameEdit;
-    QPushButton *_createAccountButton;
-    QPushButton *_loginPageButton;
+    // Register page
+    QLineEdit *regUsernameEdit;
+    QLineEdit *regPasswordEdit;
+    QLineEdit *regEmailEdit;
+    QLineEdit *regNameEdit;
 };
 
 #endif // LOGIN_DIALOG_H

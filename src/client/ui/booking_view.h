@@ -7,15 +7,9 @@
 #include <QLabel>
 #include <QGridLayout>
 #include <QPushButton>
-#include <QMenuBar>
-#include <QMenu>
-#include <QAction>
 #include <QDate>
-#include <QTimer>
-#include <vector>
 #include "common/model/model.h"
 #include "../net/api_client.h"
-#include "admin_dialog.h"
 
 class BookingView : public QMainWindow {
     Q_OBJECT
@@ -24,8 +18,6 @@ public:
     explicit BookingView(QWidget *parent = nullptr);
 
     BookingView(QWidget *parent, ApiClient &apiClient);
-
-    ~BookingView() override;
 
 private slots:
     void buildingChanged(int index);
@@ -36,66 +28,37 @@ private slots:
 
     void refreshView();
 
-    // User-related slots
+    // User actions
     void showLoginDialog();
 
-    void handleUserLogin(const User &user);
+    void handleUserLogin();
 
     void handleUserLogout();
-
-    void updateUserInterface();
 
     void showAdminDialog();
 
 private:
     void setupUi();
 
-    void initializeMenus();
-
-    void setupConnections();
-
-    void checkServerConnection();
+    void setupMenus();
 
     void updateDeskMap();
 
-    // Helper functions
-    QPushButton *createDeskButton(const Desk &desk, int index);
-
-    void formatDeskStatus(const Desk &desk, QString &text, QString &buttonStyle, int currentUserId);
-
     // UI components
-    QWidget *centralWidget;
     QCalendarWidget *calendar;
-    QComboBox *selectBuilding;
-    QComboBox *selectFloor;
+    QComboBox *buildingSelect;
     QLabel *infoLabel;
-    QLabel *userInfoLabel;
+    QLabel *userLabel;
     QGridLayout *deskMapLayout;
     QWidget *deskMapContainer;
 
-    // API client
-    ApiClient &_apiClient;
-    bool _ownsApiClient;
-
     // Data
-    std::vector<Desk> _desks;
-    std::vector<QPushButton *> _deskButtons;
+    ApiClient &apiClient;
+    std::vector<Desk> desks;
 
-    // Current selection
-    int _selectedBuilding;
-    int _selectedFloor;
-    QDate _selectedDate;
-
-    // Menu items
-    QMenu *_userMenu;
-    QAction *_loginAction;
-    QAction *_logoutAction;
-    QAction *_userProfileAction;
-
-    // Admin menu
-    QMenu *_adminMenu;
-    QAction *_adminModeAction;
-    QAction *_adminPanelAction;
+    // State
+    int selectedBuildingId = 1;
+    QDate selectedDate;
 };
 
 #endif // BOOKING_VIEW_H
