@@ -1,16 +1,9 @@
-#ifndef SERVER_USER_CONTROLLER_H
-#define SERVER_USER_CONTROLLER_H
+#ifndef USER_CONTROLLER_H
+#define USER_CONTROLLER_H
 
 #include "controller.h"
-#include <optional>
-#include <vector>
 #include "../../service/user_service.h"
 
-using json = nlohmann::json;
-
-/**
- * Controller for user-related API endpoints
- */
 class UserController : public Controller {
 public:
     explicit UserController(UserService &userService);
@@ -31,4 +24,4 @@ private:
     UserService &_userService;
 };
 
-#endif // SERVER_USER_CONTROLLER_H
+#endif // USER_CONTROLLER_H

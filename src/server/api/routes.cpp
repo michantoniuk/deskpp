@@ -1,5 +1,4 @@
 #include "routes.h"
-#include "common/logger.h"
 
 void registerRoutes(crow::SimpleApp &app, BookingController &bookingController,
                     UserController &userController, AdminController &adminController) {
@@ -93,6 +92,4 @@ void registerRoutes(crow::SimpleApp &app, BookingController &bookingController,
     ([&adminController](int deskId) {
         return adminController.deleteDesk(deskId);
     });
-
-    LOG_INFO("API routes registered successfully");
 }

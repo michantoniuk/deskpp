@@ -2,12 +2,7 @@
 #define BOOKING_CONTROLLER_H
 
 #include "controller.h"
-#include <nlohmann/json.hpp>
-#include <optional>
-#include <vector>
-#include "server/service/booking_service.h"
-
-using json = nlohmann::json;
+#include "../../service/booking_service.h"
 
 class BookingController : public Controller {
 public:

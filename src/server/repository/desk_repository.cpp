@@ -1,5 +1,4 @@
 #include "desk_repository.h"
-#include "common/logger.h"
 
 DeskRepository::DeskRepository(std::shared_ptr<SQLite::Database> db)
     : SQLiteRepository<Desk>(
@@ -13,12 +12,7 @@ DeskRepository::DeskRepository(std::shared_ptr<SQLite::Database> db)
         deskFromRow,
         [](SQLite::Statement &stmt, const Desk &desk) {
             stmt.bind(1, desk.getDeskId());
-            try {
-                stmt.bind(2, std::stoi(desk.getBuildingId()));
-            } catch (const std::invalid_argument &) {
-                LOG_ERROR("Invalid building ID format: {}", desk.getBuildingId());
-                stmt.bind(2, 0); // Default value in case of conversion error
-            }
+            stmt.bind(2, std::stoi(desk.getBuildingId()));
             stmt.bind(3, desk.getFloorNumber());
             stmt.bind(4, desk.getLocationX());
             stmt.bind(5, desk.getLocationY());
@@ -26,20 +20,13 @@ DeskRepository::DeskRepository(std::shared_ptr<SQLite::Database> db)
     ) {
 }
 
-
 Desk DeskRepository::deskFromRow(SQLite::Statement &query) {
     int id = query.getColumn(0).getInt();
     std::string deskId = query.getColumn(1).getString();
     std::string buildingId = std::to_string(query.getColumn(2).getInt());
     int floorNumber = query.getColumn(3).getInt();
-
-    int locationX = 0;
-    int locationY = 0;
-
-    if (query.getColumnCount() > 4) {
-        locationX = query.getColumn(4).getInt();
-        locationY = query.getColumn(5).getInt();
-    }
+    int locationX = query.getColumnCount() > 4 ? query.getColumn(4).getInt() : 0;
+    int locationY = query.getColumnCount() > 5 ? query.getColumn(5).getInt() : 0;
 
     return Desk(id, deskId, buildingId, floorNumber, locationX, locationY);
 }
@@ -47,16 +34,12 @@ Desk DeskRepository::deskFromRow(SQLite::Statement &query) {
 std::vector<Desk> DeskRepository::findByBuildingId(int buildingId) {
     std::vector<Desk> desks;
 
-    try {
-        SQLite::Statement query(*_db, "SELECT id, name, building_id, floor_number, location_x, location_y "
-                                "FROM desks WHERE building_id = ?");
-        query.bind(1, buildingId);
+    SQLite::Statement query(*_db, "SELECT id, name, building_id, floor_number, location_x, location_y "
+                            "FROM desks WHERE building_id = ?");
+    query.bind(1, buildingId);
 
-        while (query.executeStep()) {
-            desks.push_back(deskFromRow(query));
-        }
-    } catch (const SQLite::Exception &e) {
-        LOG_ERROR("Error getting desks by building: {}", e.what());
+    while (query.executeStep()) {
+        desks.push_back(deskFromRow(query));
     }
 
     return desks;
@@ -65,33 +48,25 @@ std::vector<Desk> DeskRepository::findByBuildingId(int buildingId) {
 std::vector<Desk> DeskRepository::findByFloorNumber(int buildingId, int floorNumber) {
     std::vector<Desk> desks;
 
-    try {
-        SQLite::Statement query(*_db, "SELECT id, name, building_id, floor_number, location_x, location_y "
-                                "FROM desks WHERE building_id = ? AND floor_number = ?");
-        query.bind(1, buildingId);
-        query.bind(2, floorNumber);
+    SQLite::Statement query(*_db, "SELECT id, name, building_id, floor_number, location_x, location_y "
+                            "FROM desks WHERE building_id = ? AND floor_number = ?");
+    query.bind(1, buildingId);
+    query.bind(2, floorNumber);
 
-        while (query.executeStep()) {
-            desks.push_back(deskFromRow(query));
-        }
-    } catch (const SQLite::Exception &e) {
-        LOG_ERROR("Error getting desks by floor: {}", e.what());
+    while (query.executeStep()) {
+        desks.push_back(deskFromRow(query));
     }
 
     return desks;
 }
 
 std::optional<Desk> DeskRepository::findByDeskNumber(const std::string &deskId) {
-    try {
-        SQLite::Statement query(*_db, "SELECT id, name, building_id, floor_number, location_x, location_y "
-                                "FROM desks WHERE name = ?");
-        query.bind(1, deskId);
+    SQLite::Statement query(*_db, "SELECT id, name, building_id, floor_number, location_x, location_y "
+                            "FROM desks WHERE name = ?");
+    query.bind(1, deskId);
 
-        if (query.executeStep()) {
-            return deskFromRow(query);
-        }
-    } catch (const SQLite::Exception &e) {
-        LOG_ERROR("Error getting desk by desk number: {}", e.what());
+    if (query.executeStep()) {
+        return deskFromRow(query);
     }
 
     return std::nullopt;

@@ -1,5 +1,4 @@
 #include "booking_repository.h"
-#include "common/logger.h"
 
 BookingRepository::BookingRepository(std::shared_ptr<SQLite::Database> db)
     : SQLiteRepository<Booking>(
@@ -33,16 +32,12 @@ Booking BookingRepository::bookingFromRow(SQLite::Statement &query) {
 std::vector<Booking> BookingRepository::findByDeskId(int deskId) {
     std::vector<Booking> bookings;
 
-    try {
-        SQLite::Statement query(*_db, "SELECT id, desk_id, user_id, date, date_to "
-                                "FROM bookings WHERE desk_id = ? ORDER BY date");
-        query.bind(1, deskId);
+    SQLite::Statement query(*_db, "SELECT id, desk_id, user_id, date, date_to "
+                            "FROM bookings WHERE desk_id = ? ORDER BY date");
+    query.bind(1, deskId);
 
-        while (query.executeStep()) {
-            bookings.push_back(bookingFromRow(query));
-        }
-    } catch (const SQLite::Exception &e) {
-        LOG_ERROR("Error getting bookings by desk ID: {}", e.what());
+    while (query.executeStep()) {
+        bookings.push_back(bookingFromRow(query));
     }
 
     return bookings;
@@ -51,16 +46,12 @@ std::vector<Booking> BookingRepository::findByDeskId(int deskId) {
 std::vector<Booking> BookingRepository::findByUserId(int userId) {
     std::vector<Booking> bookings;
 
-    try {
-        SQLite::Statement query(*_db, "SELECT id, desk_id, user_id, date, date_to "
-                                "FROM bookings WHERE user_id = ? ORDER BY date");
-        query.bind(1, userId);
+    SQLite::Statement query(*_db, "SELECT id, desk_id, user_id, date, date_to "
+                            "FROM bookings WHERE user_id = ? ORDER BY date");
+    query.bind(1, userId);
 
-        while (query.executeStep()) {
-            bookings.push_back(bookingFromRow(query));
-        }
-    } catch (const SQLite::Exception &e) {
-        LOG_ERROR("Error getting bookings by user ID: {}", e.what());
+    while (query.executeStep()) {
+        bookings.push_back(bookingFromRow(query));
     }
 
     return bookings;
@@ -69,16 +60,12 @@ std::vector<Booking> BookingRepository::findByUserId(int userId) {
 std::vector<Booking> BookingRepository::findByDate(const std::string &date) {
     std::vector<Booking> bookings;
 
-    try {
-        SQLite::Statement query(*_db, "SELECT id, desk_id, user_id, date, date_to "
-                                "FROM bookings WHERE ? BETWEEN date AND date_to ORDER BY date");
-        query.bind(1, date);
+    SQLite::Statement query(*_db, "SELECT id, desk_id, user_id, date, date_to "
+                            "FROM bookings WHERE ? BETWEEN date AND date_to ORDER BY date");
+    query.bind(1, date);
 
-        while (query.executeStep()) {
-            bookings.push_back(bookingFromRow(query));
-        }
-    } catch (const SQLite::Exception &e) {
-        LOG_ERROR("Error getting bookings by date: {}", e.what());
+    while (query.executeStep()) {
+        bookings.push_back(bookingFromRow(query));
     }
 
     return bookings;
@@ -88,44 +75,30 @@ std::vector<Booking> BookingRepository::findByDateRange(int deskId, const std::s
                                                         const std::string &dateTo) {
     std::vector<Booking> bookings;
 
-    try {
-        // Find bookings that overlap with the given range
-        SQLite::Statement query(*_db, "SELECT id, desk_id, user_id, date, date_to "
-                                "FROM bookings WHERE desk_id = ? AND NOT (date_to < ? OR date > ?) "
-                                "ORDER BY date");
-        query.bind(1, deskId);
-        query.bind(2, dateFrom);
-        query.bind(3, dateTo);
+    SQLite::Statement query(*_db, "SELECT id, desk_id, user_id, date, date_to "
+                            "FROM bookings WHERE desk_id = ? AND NOT (date_to < ? OR date > ?) "
+                            "ORDER BY date");
+    query.bind(1, deskId);
+    query.bind(2, dateFrom);
+    query.bind(3, dateTo);
 
-        while (query.executeStep()) {
-            bookings.push_back(bookingFromRow(query));
-        }
-    } catch (const SQLite::Exception &e) {
-        LOG_ERROR("Error getting bookings in range: {}", e.what());
+    while (query.executeStep()) {
+        bookings.push_back(bookingFromRow(query));
     }
 
     return bookings;
 }
 
 bool BookingRepository::hasOverlappingBooking(int deskId, const std::string &dateFrom, const std::string &dateTo) {
-    try {
-        // Check for overlapping bookings, allowing consecutive bookings
-        SQLite::Statement query(*_db, "SELECT COUNT(*) FROM bookings "
-                                "WHERE desk_id = ? "
-                                "AND NOT (date_to < ? OR date > ?) "
-                                "AND NOT (date_to = ? OR date = ?)");
-        query.bind(1, deskId);
-        query.bind(2, dateFrom);
-        query.bind(3, dateTo);
-        query.bind(4, dateFrom);
-        query.bind(5, dateTo);
+    SQLite::Statement query(*_db, "SELECT COUNT(*) FROM bookings "
+                            "WHERE desk_id = ? AND NOT (date_to < ? OR date > ?)");
+    query.bind(1, deskId);
+    query.bind(2, dateFrom);
+    query.bind(3, dateTo);
 
-        if (query.executeStep()) {
-            return query.getColumn(0).getInt() > 0;
-        }
-    } catch (const SQLite::Exception &e) {
-        LOG_ERROR("Error checking for overlapping bookings: {}", e.what());
+    if (query.executeStep()) {
+        return query.getColumn(0).getInt() > 0;
     }
 
-    return true; // Assume there's an overlap if query fails
+    return false;
 }

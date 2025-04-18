@@ -121,7 +121,6 @@ set(SERVER_SERVICE_SOURCES
 # Server API sources
 set(SERVER_API_SOURCES
         src/server/api/controller/controller.h
-        src/server/api/controller/controller.cpp
         src/server/api/controller/booking_controller.h
         src/server/api/controller/booking_controller.cpp
         src/server/api/controller/user_controller.h

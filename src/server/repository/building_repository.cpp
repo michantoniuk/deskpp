@@ -1,10 +1,7 @@
 #include "building_repository.h"
 
-#include "sqlite_repository.h"
-#include "common/logger.h"
-
 BuildingRepository::BuildingRepository(std::shared_ptr<SQLite::Database> db)
-    : ::SQLiteRepository<Building>(
+    : SQLiteRepository<Building>(
         db,
         "buildings",
         "SELECT id, name, address FROM buildings ORDER BY name",
@@ -29,15 +26,11 @@ Building BuildingRepository::buildingFromRow(SQLite::Statement &query) {
 }
 
 std::optional<Building> BuildingRepository::findByName(const std::string &name) {
-    try {
-        SQLite::Statement query(*_db, "SELECT id, name, address FROM buildings WHERE name = ?");
-        query.bind(1, name);
+    SQLite::Statement query(*_db, "SELECT id, name, address FROM buildings WHERE name = ?");
+    query.bind(1, name);
 
-        if (query.executeStep()) {
-            return buildingFromRow(query);
-        }
-    } catch (const SQLite::Exception &e) {
-        LOG_ERROR("Error getting building by name: {}", e.what());
+    if (query.executeStep()) {
+        return buildingFromRow(query);
     }
 
     return std::nullopt;

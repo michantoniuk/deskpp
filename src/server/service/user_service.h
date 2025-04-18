@@ -2,11 +2,7 @@
 #define USER_SERVICE_H
 
 #include "service.h"
-#include <string>
-#include <nlohmann/json.hpp>
 #include "../repository/user_repository.h"
-
-using json = nlohmann::json;
 
 class UserService : public Service<User> {
 public:
@@ -15,8 +11,6 @@ public:
     json getAllUsers();
 
     json getUserById(int id);
-
-    json getUserByUsername(const std::string &username);
 
     json registerUser(const std::string &username, const std::string &password,
                       const std::string &email, const std::string &fullName);
@@ -29,10 +23,6 @@ public:
 
 private:
     UserRepository &_userRepo;
-
-    // Helpers
-    bool validateUserData(const std::string &username, const std::string &password,
-                          const std::string &email);
 
     std::string hashPassword(const std::string &password);
 };
