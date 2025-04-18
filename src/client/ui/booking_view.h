@@ -19,14 +19,16 @@ public:
 
     BookingView(QWidget *parent, ApiClient &apiClient);
 
+    void updateLoginStatus();
+
+    void refreshView();
+
 private slots:
     void buildingChanged(int index);
 
     void dateChanged(const QDate &date);
 
     void deskClicked();
-
-    void refreshView();
 
     // User actions
     void showLoginDialog();

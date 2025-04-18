@@ -14,10 +14,12 @@ crow::response Controller::errorResponse(int statusCode, const std::string &mess
         {"status", "error"},
         {"message", message}
     };
+    LOG_INFO("SERVER: Error response: {}", message);
     return crow::response(statusCode, response.dump());
 }
 
 crow::response Controller::successResponse(const json &data) {
+    LOG_INFO("SERVER: Success response");
     return crow::response(200, data.dump());
 }
 

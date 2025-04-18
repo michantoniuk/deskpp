@@ -19,10 +19,13 @@ public:
 
     ApiClient(const std::string &serverAddress, int port, QObject *parent = nullptr);
 
+    // Network operations
+    json executeRequest(const QString &method, const QString &endpoint, const json &data = json::object());
+
+    bool checkAuthentication(const std::string &action);
+
     // Data operations
     std::vector<Desk> getDesks(int buildingId = 1);
-
-    json executeRequest(const QString &method, const QString &endpoint, const json &data = json::object());
 
     // Booking operations
     bool addBooking(int deskId, int userId, const std::string &dateFrom, const std::string &dateTo);

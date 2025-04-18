@@ -7,16 +7,15 @@
 #include <QScrollArea>
 #include <QMenuBar>
 #include <QStatusBar>
+#include <QMessageBox>
+
+#include "common/logger.h"
 
 BookingView::BookingView(QWidget *parent, ApiClient &apiClient)
     : QMainWindow(parent), apiClient(apiClient), selectedDate(QDate::currentDate()) {
     setupUi();
     setupMenus();
-
     setWindowTitle("DeskPP - Desk Booking System");
-
-    // Load initial data
-    refreshView();
 }
 
 BookingView::BookingView(QWidget *parent)
@@ -59,7 +58,9 @@ void BookingView::setupUi() {
     infoLabel = new QLabel(QString("Desk plan for %1").arg(selectedDate.toString("MM/dd/yyyy")), this);
     optionsLayout->addWidget(infoLabel);
 
-    userLabel = new QLabel("Not logged in", this);
+    // User label - display login status
+    userLabel = new QLabel(this);
+    updateLoginStatus(); // Set initial value
     optionsLayout->addWidget(userLabel);
 
     topLayout->addWidget(optionsPanel);
@@ -116,6 +117,15 @@ void BookingView::setupMenus() {
     adminMenu->addAction(adminPanelAction);
 }
 
+void BookingView::updateLoginStatus() {
+    if (apiClient.isLoggedIn() && apiClient.getCurrentUser()) {
+        userLabel->setText(QString("Logged in as: %1")
+            .arg(QString::fromStdString(apiClient.getCurrentUser()->getUsername())));
+    } else {
+        userLabel->setText("Not logged in");
+    }
+}
+
 void BookingView::buildingChanged(int index) {
     selectedBuildingId = index + 1;
     refreshView();
@@ -128,6 +138,13 @@ void BookingView::dateChanged(const QDate &date) {
 }
 
 void BookingView::refreshView() {
+    // Verify login status
+    if (!apiClient.isLoggedIn()) {
+        showLoginDialog();
+        return;
+    }
+
+    updateLoginStatus();
     desks = apiClient.getDesks(selectedBuildingId);
     updateDeskMap();
     statusBar()->showMessage(QString("Loaded %1 desks").arg(desks.size()), 3000);
@@ -145,18 +162,45 @@ void BookingView::updateDeskMap() {
     // Add desk buttons to grid
     for (size_t i = 0; i < desks.size(); ++i) {
         const auto &desk = desks[i];
+        bool isBooked = desk.isBookedOnDate(selectedDate);
 
         // Create button
-        auto button = new QPushButton(QString::fromStdString(desk.getDeskId()), this);
+        auto button = new QPushButton(this);
         button->setMinimumSize(100, 80);
 
-        // Set style based on booking status
-        if (desk.isBookedOnDate(selectedDate)) {
-            button->setStyleSheet("background-color: #d7ccc8;"); // Gray for booked
-            button->setText(QString::fromStdString(desk.getDeskId()) + "\nBooked");
+        if (isBooked) {
+            auto bookings = desk.getBookingsContainingDate(selectedDate);
+            if (!bookings.empty()) {
+                const auto &booking = bookings[0];
+
+                // Get end date of booking
+                QString endDate = QDate::fromString(
+                    QString::fromStdString(booking.getDateToString()),
+                    "yyyy-MM-dd").toString("MM/dd/yyyy");
+
+                // Get current username if logged in
+                std::string currentUsername = "";
+                if (apiClient.isLoggedIn() && apiClient.getCurrentUser()) {
+                    currentUsername = apiClient.getCurrentUser()->getUsername();
+                }
+
+                // For now, use a hardcoded check to see if it works
+                if (currentUsername == "user1") {
+                    // Blue for user's own bookings
+                    button->setStyleSheet("background-color: #2196F3; color: white;");
+                    button->setText(QString::fromStdString(desk.getDeskId()) +
+                                    "\nBooked by you until " + endDate);
+                } else {
+                    // Red for bookings by others
+                    button->setStyleSheet("background-color: #F44336; color: white;");
+                    button->setText(QString::fromStdString(desk.getDeskId()) +
+                                    "\nBooked until " + endDate);
+                }
+            }
         } else {
-            button->setStyleSheet("background-color: #a5d6a7;"); // Green for available
+            // Green for available desks
             button->setText(QString::fromStdString(desk.getDeskId()) + "\nAvailable");
+            button->setStyleSheet("background-color: #4CAF50; color: white;");
         }
 
         // Store desk index for click handler
@@ -177,44 +221,57 @@ void BookingView::updateDeskMap() {
 }
 
 void BookingView::deskClicked() {
+    // Check login first
+    if (!apiClient.isLoggedIn()) {
+        QMessageBox::warning(this, "Login Required", "You must be logged in to book a desk");
+        showLoginDialog();
+        return;
+    }
+
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (!button) return;
 
     int deskIndex = button->property("index").toInt();
+    if (deskIndex < 0 || deskIndex >= static_cast<int>(desks.size())) return;
 
     // Show booking dialog
     BookingDialog dialog(desks[deskIndex], selectedDate, apiClient, this);
-    dialog.exec();
-
-    // Refresh after booking
-    refreshView();
+    if (dialog.exec() == QDialog::Accepted) {
+        // Refresh after booking
+        refreshView();
+    }
 }
 
 void BookingView::showLoginDialog() {
     LoginDialog dialog(apiClient, this);
-
     if (dialog.exec() == QDialog::Accepted) {
-        handleUserLogin();
+        updateLoginStatus();
+        refreshView();
     }
 }
 
 void BookingView::handleUserLogin() {
-    if (apiClient.isLoggedIn() && apiClient.getCurrentUser()) {
-        userLabel->setText(QString("Logged in as: %1")
-            .arg(QString::fromStdString(apiClient.getCurrentUser()->getUsername())));
-    }
-
+    updateLoginStatus();
     refreshView();
 }
 
 void BookingView::handleUserLogout() {
     apiClient.logoutUser();
-    userLabel->setText("Not logged in");
-    refreshView();
+    updateLoginStatus();
+
+    // Show login dialog after logout
+    showLoginDialog();
 }
 
 void BookingView::showAdminDialog() {
+    if (!apiClient.isLoggedIn()) {
+        QMessageBox::warning(this, "Login Required", "You must be logged in as admin to access this feature");
+        showLoginDialog();
+        return;
+    }
+
     AdminDialog dialog(apiClient, this);
-    dialog.exec();
-    refreshView();
+    if (dialog.exec() == QDialog::Accepted) {
+        refreshView();
+    }
 }
