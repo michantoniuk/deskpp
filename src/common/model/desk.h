@@ -7,7 +7,6 @@
 #include <vector>
 #include <QDate>
 
-// Desk model
 class Desk : public Entity {
 public:
     Desk() = default;
@@ -15,13 +14,12 @@ public:
     Desk(int id, const std::string &deskId, const std::string &buildingId, int floorNumber,
          int locationX = 0, int locationY = 0);
 
-    // From Entity
     json toJson() const override;
 
     std::string toString() const override;
 
     // Booking-related methods
-    bool isAvailable() const;
+    bool isAvailable() const { return _bookings.empty(); }
 
     bool isAvailableOn(const QDate &date) const;
 
@@ -29,7 +27,7 @@ public:
 
     bool hasOverlappingBooking(const QDate &dateFrom, const QDate &dateTo) const;
 
-    const std::vector<Booking> &getBookings() const;
+    const std::vector<Booking> &getBookings() const { return _bookings; }
 
     Booking getBookingForDate(const QDate &date) const;
 
@@ -43,7 +41,7 @@ public:
 
     void cancelBooking(int bookingId);
 
-    void cancelAllBookings();
+    void cancelAllBookings() { _bookings.clear(); }
 
     // Getters/setters
     const std::string &getDeskId() const { return _deskId; }
@@ -58,10 +56,9 @@ public:
     void setLocationX(int x) { _locationX = x; }
     void setLocationY(int y) { _locationY = y; }
 
-    // Legacy methods for backward compatibility
+    // Legacy compatibility
     bool isBooked() const { return !isAvailable(); }
     bool isBookedOnDate(const QDate &date) const { return !isAvailableOn(date); }
-    bool hasNoBookings() const { return isAvailable(); }
 
 private:
     std::string _deskId;

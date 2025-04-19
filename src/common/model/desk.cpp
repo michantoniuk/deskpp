@@ -19,12 +19,7 @@ json Desk::toJson() const {
 }
 
 std::string Desk::toString() const {
-    return "Desk: " + _deskId + " (ID: " + std::to_string(getId()) +
-           ", loc: " + std::to_string(_locationX) + "," + std::to_string(_locationY) + ")";
-}
-
-bool Desk::isAvailable() const {
-    return _bookings.empty();
+    return "Desk: " + _deskId + " (ID: " + std::to_string(getId()) + ")";
 }
 
 bool Desk::isAvailableOn(const QDate &date) const {
@@ -39,16 +34,10 @@ bool Desk::isAvailableForPeriod(const QDate &dateFrom, const QDate &dateTo) cons
 }
 
 bool Desk::hasOverlappingBooking(const QDate &dateFrom, const QDate &dateTo) const {
-    for (const auto &booking: _bookings) {
-        if (booking.overlapsWithPeriod(dateFrom, dateTo)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-const std::vector<Booking> &Desk::getBookings() const {
-    return _bookings;
+    return std::any_of(_bookings.begin(), _bookings.end(),
+                       [&](const Booking &booking) {
+                           return booking.overlapsWithPeriod(dateFrom, dateTo);
+                       });
 }
 
 Booking Desk::getBookingForDate(const QDate &date) const {
@@ -68,7 +57,6 @@ std::vector<Booking> Desk::getBookingsAfterDate(const QDate &date) const {
                      return booking.getDateFrom() >= date;
                  });
 
-    // Sort by start date
     std::sort(result.begin(), result.end(),
               [](const Booking &a, const Booking &b) {
                   return a.getDateFrom() < b.getDateFrom();
@@ -109,10 +97,6 @@ void Desk::cancelBooking(int bookingId) {
     if (it != _bookings.end()) {
         _bookings.erase(it, _bookings.end());
     }
-}
-
-void Desk::cancelAllBookings() {
-    _bookings.clear();
 }
 
 void Desk::sortBookings() {

@@ -102,12 +102,12 @@ int main(int argc, char *argv[]) {
 
             // Add desks
             if (krakAId > 0 && wawBId > 0) {
-                db->exec("INSERT INTO desks (name, building_id, floor_number) VALUES "
-                         "('KrakA-01-001', " + std::to_string(krakAId) + ", 1),"
-                         "('KrakA-01-002', " + std::to_string(krakAId) + ", 1),"
-                         "('KrakA-01-003', " + std::to_string(krakAId) + ", 1),"
-                         "('WawB-01-001', " + std::to_string(wawBId) + ", 1),"
-                         "('WawB-01-002', " + std::to_string(wawBId) + ", 1);");
+                db->exec("INSERT INTO desks (name, building_id, floor_number, location_x, location_y) VALUES "
+                         "('KrakA-01-001', " + std::to_string(krakAId) + ", 1, 1, 1),"
+                         "('KrakA-01-002', " + std::to_string(krakAId) + ", 1, 2, 1),"
+                         "('KrakA-01-003', " + std::to_string(krakAId) + ", 1, 2, 2),"
+                         "('WawB-01-001', " + std::to_string(wawBId) + ", 1, 1, 1),"
+                         "('WawB-01-002', " + std::to_string(wawBId) + ", 1, 2, 1);");
             }
 
             // Add users with simple password hashing

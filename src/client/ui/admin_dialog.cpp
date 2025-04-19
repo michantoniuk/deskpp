@@ -35,19 +35,19 @@ AdminDialog::AdminDialog(ApiClient &apiClient, QWidget *parent)
     // Building buttons
     auto buildingBtnLayout = new QHBoxLayout();
 
-    auto addBuildingBtn = new QPushButton("Add");
+    auto addBuildingBtn = new QPushButton("Add", this);
     connect(addBuildingBtn, &QPushButton::clicked, this, &AdminDialog::addBuilding);
     buildingBtnLayout->addWidget(addBuildingBtn);
 
-    auto updateBuildingBtn = new QPushButton("Update");
+    auto updateBuildingBtn = new QPushButton("Update", this);
     connect(updateBuildingBtn, &QPushButton::clicked, this, &AdminDialog::updateBuilding);
     buildingBtnLayout->addWidget(updateBuildingBtn);
 
-    auto deleteBuildingBtn = new QPushButton("Delete");
+    auto deleteBuildingBtn = new QPushButton("Delete", this);
     connect(deleteBuildingBtn, &QPushButton::clicked, this, &AdminDialog::deleteBuilding);
     buildingBtnLayout->addWidget(deleteBuildingBtn);
 
-    auto refreshBuildingsBtn = new QPushButton("Refresh");
+    auto refreshBuildingsBtn = new QPushButton("Refresh", this);
     connect(refreshBuildingsBtn, &QPushButton::clicked, this, &AdminDialog::refreshBuildings);
     buildingBtnLayout->addWidget(refreshBuildingsBtn);
 
@@ -93,19 +93,19 @@ AdminDialog::AdminDialog(ApiClient &apiClient, QWidget *parent)
     // Desk buttons
     auto deskBtnLayout = new QHBoxLayout();
 
-    auto addDeskBtn = new QPushButton("Add");
+    auto addDeskBtn = new QPushButton("Add", this);
     connect(addDeskBtn, &QPushButton::clicked, this, &AdminDialog::addDesk);
     deskBtnLayout->addWidget(addDeskBtn);
 
-    auto updateDeskBtn = new QPushButton("Update");
+    auto updateDeskBtn = new QPushButton("Update", this);
     connect(updateDeskBtn, &QPushButton::clicked, this, &AdminDialog::updateDesk);
     deskBtnLayout->addWidget(updateDeskBtn);
 
-    auto deleteDeskBtn = new QPushButton("Delete");
+    auto deleteDeskBtn = new QPushButton("Delete", this);
     connect(deleteDeskBtn, &QPushButton::clicked, this, &AdminDialog::deleteDesk);
     deskBtnLayout->addWidget(deleteDeskBtn);
 
-    auto refreshDesksBtn = new QPushButton("Refresh");
+    auto refreshDesksBtn = new QPushButton("Refresh", this);
     connect(refreshDesksBtn, &QPushButton::clicked, this, &AdminDialog::refreshDesks);
     deskBtnLayout->addWidget(refreshDesksBtn);
 
@@ -153,6 +153,8 @@ void AdminDialog::addBuilding() {
     if (apiClient.addBuilding(name, address)) {
         QMessageBox::information(this, "Success", "Building added");
         refreshBuildings();
+    } else {
+        QMessageBox::warning(this, "Error", "Failed to add building");
     }
 }
 
@@ -165,15 +167,24 @@ void AdminDialog::updateBuilding() {
     if (apiClient.updateBuilding(selectedBuildingId, name, address)) {
         QMessageBox::information(this, "Success", "Building updated");
         refreshBuildings();
+    } else {
+        QMessageBox::warning(this, "Error", "Failed to update building");
     }
 }
 
 void AdminDialog::deleteBuilding() {
     if (selectedBuildingId < 0) return;
 
+    if (QMessageBox::question(this, "Confirm Delete", "Are you sure you want to delete this building?")
+        != QMessageBox::Yes) {
+        return;
+    }
+
     if (apiClient.deleteBuilding(selectedBuildingId)) {
         QMessageBox::information(this, "Success", "Building deleted");
         refreshBuildings();
+    } else {
+        QMessageBox::warning(this, "Error", "Failed to delete building");
     }
 }
 
@@ -210,11 +221,10 @@ void AdminDialog::refreshDesks() {
             std::string deskId = desk.contains("deskId") ? desk["deskId"].get<std::string>() : "";
             std::string buildingId = "1";
             if (desk.contains("buildingId")) {
-                if (desk["buildingId"].is_string()) {
+                if (desk["buildingId"].is_string())
                     buildingId = desk["buildingId"].get<std::string>();
-                } else if (desk["buildingId"].is_number()) {
+                else if (desk["buildingId"].is_number())
                     buildingId = std::to_string(desk["buildingId"].get<int>());
-                }
             }
 
             // Simple mapping for building name
@@ -265,6 +275,11 @@ void AdminDialog::updateDesk() {
 void AdminDialog::deleteDesk() {
     if (selectedDeskId < 0) return;
 
+    if (QMessageBox::question(this, "Confirm Delete", "Are you sure you want to delete this desk?")
+        != QMessageBox::Yes) {
+        return;
+    }
+
     if (apiClient.deleteDesk(selectedDeskId)) {
         QMessageBox::information(this, "Success", "Desk deleted");
         refreshDesks();
@@ -285,10 +300,7 @@ void AdminDialog::selectDesk(int row, int column) {
         if (idItem && deskIdItem) {
             selectedDeskId = idItem->text().toInt();
             deskIdEdit->setText(deskIdItem->text());
-
-            // Set building in combo
             buildingCombo->setCurrentIndex(buildingItem->text() == "Krakow A" ? 0 : 1);
-
             floorSpin->setValue(floorItem->text().toInt());
             xSpin->setValue(xItem->text().toInt());
             ySpin->setValue(yItem->text().toInt());

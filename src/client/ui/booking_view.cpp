@@ -8,7 +8,6 @@
 #include <QMenuBar>
 #include <QStatusBar>
 #include <QMessageBox>
-
 #include "common/logger.h"
 
 BookingView::BookingView(QWidget *parent, ApiClient &apiClient)
@@ -107,7 +106,7 @@ void BookingView::setupMenus() {
 
     auto adminModeAction = new QAction("Enable Admin Mode", this);
     adminModeAction->setCheckable(true);
-    connect(adminModeAction, &QAction::triggered, this, [this](bool checked) {
+    connect(adminModeAction, &QAction::triggered, [this](bool checked) {
         apiClient.setAdminMode(checked);
     });
     adminMenu->addAction(adminModeAction);
@@ -184,8 +183,7 @@ void BookingView::updateDeskMap() {
                     currentUsername = apiClient.getCurrentUser()->getUsername();
                 }
 
-                // For now, use a hardcoded check to see if it works
-                if (currentUsername == "user1") {
+                if (apiClient.isLoggedIn() && apiClient.getCurrentUser()->getId() == booking.getUserId()) {
                     // Blue for user's own bookings
                     button->setStyleSheet("background-color: #2196F3; color: white;");
                     button->setText(QString::fromStdString(desk.getDeskId()) +

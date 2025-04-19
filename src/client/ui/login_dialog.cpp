@@ -23,13 +23,16 @@ LoginDialog::LoginDialog(ApiClient &apiClient, QWidget *parent)
     loginLayout->addLayout(loginForm);
 
     auto loginBtnLayout = new QHBoxLayout();
-    auto loginBtn = new QPushButton("Login");
+
+    // Create and connect buttons properly
+    auto loginBtn = new QPushButton("Login", this);
     connect(loginBtn, &QPushButton::clicked, this, &LoginDialog::login);
     loginBtnLayout->addWidget(loginBtn);
 
-    auto registerBtn = new QPushButton("Create Account");
+    auto registerBtn = new QPushButton("Create Account", this);
     connect(registerBtn, &QPushButton::clicked, this, &LoginDialog::switchToRegister);
     loginBtnLayout->addWidget(registerBtn);
+
     loginLayout->addLayout(loginBtnLayout);
 
     // Register page
@@ -50,13 +53,15 @@ LoginDialog::LoginDialog(ApiClient &apiClient, QWidget *parent)
     registerLayout->addLayout(registerForm);
 
     auto regBtnLayout = new QHBoxLayout();
-    auto createBtn = new QPushButton("Create Account");
+
+    auto createBtn = new QPushButton("Create Account", this);
     connect(createBtn, &QPushButton::clicked, this, &LoginDialog::registerUser);
     regBtnLayout->addWidget(createBtn);
 
-    auto backBtn = new QPushButton("Back to Login");
+    auto backBtn = new QPushButton("Back to Login", this);
     connect(backBtn, &QPushButton::clicked, this, &LoginDialog::switchToLogin);
     regBtnLayout->addWidget(backBtn);
+
     registerLayout->addLayout(regBtnLayout);
 
     // Add pages to stack

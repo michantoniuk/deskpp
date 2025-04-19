@@ -4,14 +4,12 @@
 #include "entity.h"
 #include <string>
 
-// User model
 class User : public Entity {
 public:
     User() = default;
 
     User(int id, const std::string &username, const std::string &email, const std::string &fullName);
 
-    // From Entity
     json toJson() const override;
 
     std::string toString() const override;

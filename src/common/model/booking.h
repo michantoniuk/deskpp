@@ -5,7 +5,6 @@
 #include <string>
 #include <QDate>
 
-// Booking model
 class Booking : public Entity {
 public:
     Booking() = default;
@@ -14,7 +13,6 @@ public:
 
     Booking(int id, int deskId, int userId, const std::string &dateFrom, const std::string &dateTo);
 
-    // From Entity
     json toJson() const override;
 
     std::string toString() const override;
@@ -28,7 +26,6 @@ public:
 
     bool overlapsWithPeriod(const std::string &dateFrom, const std::string &dateTo) const;
 
-    // JSON conversion
     static Booking fromJson(const json &j);
 
     // Getters/setters
@@ -37,9 +34,8 @@ public:
     QDate getDateFrom() const { return _dateFrom; }
     QDate getDateTo() const { return _dateTo; }
 
-    std::string getDateFromString() const;
-
-    std::string getDateToString() const;
+    std::string getDateFromString() const { return _dateFrom.toString("yyyy-MM-dd").toStdString(); }
+    std::string getDateToString() const { return _dateTo.toString("yyyy-MM-dd").toStdString(); }
 
     void setDeskId(int deskId) { _deskId = deskId; }
     void setUserId(int userId) { _userId = userId; }
@@ -55,13 +51,6 @@ private:
     int _userId = 0;
     QDate _dateFrom;
     QDate _dateTo;
-
-    // Helper methods for date comparison
-    bool isDateBefore(const std::string &date1, const std::string &date2) const;
-
-    bool isDateAfter(const std::string &date1, const std::string &date2) const;
-
-    bool isDateEqual(const std::string &date1, const std::string &date2) const;
 };
 
 #endif // BOOKING_H

@@ -6,7 +6,6 @@
 
 using json = nlohmann::json;
 
-// Base class for all domain entities
 class Entity {
 public:
     Entity() : _id(0) {
@@ -17,19 +16,15 @@ public:
 
     virtual ~Entity() = default;
 
-    // Common functionality
     int getId() const { return _id; }
     void setId(int id) { _id = id; }
 
-    // Polymorphic methods
     virtual json toJson() const = 0;
 
-    virtual std::string toString() const {
-        return "Entity ID: " + std::to_string(_id);
-    }
+    virtual std::string toString() const { return "Entity ID: " + std::to_string(_id); }
 
 protected:
-    int _id; // Entity identifier
+    int _id;
 };
 
 #endif // ENTITY_H

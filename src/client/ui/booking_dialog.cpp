@@ -21,8 +21,7 @@ BookingDialog::BookingDialog(Desk &desk, const QDate &date, ApiClient &apiClient
     QGroupBox *statusGroup = new QGroupBox("Booking Status", this);
     QVBoxLayout *statusLayout = new QVBoxLayout(statusGroup);
 
-    QString statusText = isBooked ? "Status: Booked" : "Status: Available";
-    statusLayout->addWidget(new QLabel(statusText));
+    statusLayout->addWidget(new QLabel(isBooked ? "Status: Booked" : "Status: Available"));
 
     // If booked, show booking details
     if (isBooked) {
@@ -32,9 +31,8 @@ BookingDialog::BookingDialog(Desk &desk, const QDate &date, ApiClient &apiClient
 
             // Try to get booker's username
             QString bookedBy = QString::number(booking.getUserId());
-            // In a real app, you would fetch the username based on ID
 
-            // Show if the current user is the owner of this booking
+            // Show if current user is owner
             bool isOwner = apiClient.isLoggedIn() &&
                            apiClient.getCurrentUser()->getId() == booking.getUserId();
             if (isOwner) {

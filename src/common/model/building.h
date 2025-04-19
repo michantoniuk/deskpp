@@ -4,19 +4,16 @@
 #include "entity.h"
 #include <string>
 
-// Building model
 class Building : public Entity {
 public:
     Building() = default;
 
     Building(int id, const std::string &name, const std::string &address);
 
-    // From Entity
     json toJson() const override;
 
     std::string toString() const override;
 
-    // Getters/setters
     const std::string &getName() const { return _name; }
     const std::string &getAddress() const { return _address; }
 
