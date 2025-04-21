@@ -2,7 +2,6 @@
 #define USER_H
 
 #include "entity.h"
-#include <string>
 
 class User : public Entity {
 public:
@@ -26,10 +25,6 @@ public:
     void setPasswordHash(const std::string &passwordHash) { _passwordHash = passwordHash; }
 
 private:
-    std::string _username;
-    std::string _email;
-    std::string _fullName;
-    std::string _passwordHash;
+    std::string _username, _email, _fullName, _passwordHash;
 };
-
-#endif // USER_H
+#endif

@@ -27,4 +27,4 @@ private:
     std::string hashPassword(const std::string &password);
 };
 
-#endif // USER_SERVICE_H
+#endif

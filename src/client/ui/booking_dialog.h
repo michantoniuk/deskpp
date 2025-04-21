@@ -23,11 +23,10 @@ private:
     Desk &desk;
     QDate bookingDate;
     ApiClient &apiClient;
-
     QDateEdit *dateFromEdit;
     QDateEdit *dateToEdit;
     QPushButton *bookButton;
     QPushButton *cancelButton;
 };
 
-#endif // BOOKING_DIALOG_H
+#endif

@@ -3,13 +3,8 @@
 
 #include <QNetworkAccessManager>
 #include <QObject>
-#include <string>
-#include <vector>
 #include <optional>
-#include <nlohmann/json.hpp>
 #include "common/model/model.h"
-
-using json = nlohmann::json;
 
 class ApiClient : public QObject {
     Q_OBJECT
@@ -69,4 +64,4 @@ private:
     bool _isAdmin = false;
 };
 
-#endif // API_CLIENT_H
+#endif

@@ -3,9 +3,7 @@
 
 #include "sqlite_repository.h"
 #include "common/model/user.h"
-#include <SQLiteCpp/SQLiteCpp.h>
 #include <memory>
-#include <string>
 
 class UserRepository : public SQLiteRepository<User> {
 public:
@@ -23,4 +21,4 @@ private:
     static User userFromRow(SQLite::Statement &query);
 };
 
-#endif // USER_REPOSITORY_H
+#endif

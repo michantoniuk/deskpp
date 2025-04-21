@@ -1,12 +1,9 @@
 #ifndef APP_SETTINGS_H
 #define APP_SETTINGS_H
 
-#include <string>
 #include <QSettings>
 #include <QCoreApplication>
 #include <QCommandLineParser>
-#include <QSize>
-#include <iostream>
 #include "logger.h"
 
 class AppSettings {
@@ -22,7 +19,6 @@ public:
         parser.setApplicationDescription("DeskPP Client");
         parser.addHelpOption();
 
-        // Server options
         QCommandLineOption serverOption(QStringList() << "s" << "server", "Server address", "address", "localhost");
         QCommandLineOption portOption(QStringList() << "p" << "port", "Server port", "port", "8080");
         QCommandLineOption verboseOption(QStringList() << "v" << "verbose", "Enable verbose logging");
@@ -30,10 +26,8 @@ public:
         parser.addOption(serverOption);
         parser.addOption(portOption);
         parser.addOption(verboseOption);
-
         parser.process(app);
 
-        // Apply options
         if (parser.isSet(serverOption)) _settings.setValue("server/address", parser.value(serverOption));
         if (parser.isSet(portOption)) _settings.setValue("server/port", parser.value(portOption).toInt());
         if (parser.isSet(verboseOption)) _settings.setValue("logging/verbose", true);
@@ -70,11 +64,8 @@ public:
     bool isInitialized() const { return _initialized; }
 
 private:
-    AppSettings() : _settings("DeskPP", "Application"),
-                    _initialized(false),
-                    _port(8080),
-                    _dbPath("deskpp.sqlite"),
-                    _verbose(false) {
+    AppSettings() : _settings("DeskPP", "Application"), _initialized(false), _port(8080),
+                    _dbPath("deskpp.sqlite"), _verbose(false) {
     }
 
     AppSettings(const AppSettings &) = delete;
@@ -88,4 +79,4 @@ private:
     bool _verbose;
 };
 
-#endif // APP_SETTINGS_H
+#endif

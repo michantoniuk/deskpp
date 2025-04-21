@@ -20,4 +20,4 @@ public:
     virtual bool remove(int id) = 0;
 };
 
-#endif // REPOSITORY_H
+#endif

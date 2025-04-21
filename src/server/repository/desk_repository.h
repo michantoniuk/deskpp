@@ -19,4 +19,4 @@ private:
     static Desk deskFromRow(SQLite::Statement &query);
 };
 
-#endif // DESK_REPOSITORY_H
+#endif

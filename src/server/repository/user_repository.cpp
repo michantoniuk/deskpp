@@ -39,7 +39,6 @@ std::optional<User> UserRepository::findByUsername(const std::string &username) 
     if (query.executeStep()) {
         return userFromRow(query);
     }
-
     return std::nullopt;
 }
 
@@ -51,7 +50,6 @@ std::optional<User> UserRepository::findByEmail(const std::string &email) {
     if (query.executeStep()) {
         return userFromRow(query);
     }
-
     return std::nullopt;
 }
 
@@ -64,7 +62,6 @@ bool UserRepository::validateCredentials(const std::string &username, const std:
     if (query.executeStep()) {
         return query.getColumn(0).getInt() > 0;
     }
-
     return false;
 }
 

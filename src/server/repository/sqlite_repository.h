@@ -4,7 +4,6 @@
 #include "repository.h"
 #include <SQLiteCpp/SQLiteCpp.h>
 #include <memory>
-#include <string>
 #include "common/logger.h"
 
 template<typename T>
@@ -31,15 +30,10 @@ public:
         const std::string &deleteQuery,
         std::function<T(SQLite::Statement &)> rowToEntity,
         std::function<void(SQLite::Statement &, const T &)> bindEntity
-    ) : _db(db),
-        _tableName(tableName),
-        _findAllQuery(findAllQuery),
-        _findByIdQuery(findByIdQuery),
-        _insertQuery(insertQuery),
-        _updateQuery(updateQuery),
-        _deleteQuery(deleteQuery),
-        _rowToEntity(rowToEntity),
-        _bindEntity(bindEntity) {
+    ) : _db(db), _tableName(tableName), _findAllQuery(findAllQuery),
+        _findByIdQuery(findByIdQuery), _insertQuery(insertQuery),
+        _updateQuery(updateQuery), _deleteQuery(deleteQuery),
+        _rowToEntity(rowToEntity), _bindEntity(bindEntity) {
     }
 
     std::vector<T> findAll() override {
@@ -49,7 +43,6 @@ public:
         while (query.executeStep()) {
             entities.push_back(_rowToEntity(query));
         }
-
         return entities;
     }
 
@@ -60,7 +53,6 @@ public:
         if (query.executeStep()) {
             return _rowToEntity(query);
         }
-
         return std::nullopt;
     }
 
@@ -94,4 +86,4 @@ public:
     }
 };
 
-#endif // SQLITE_REPOSITORY_H
+#endif

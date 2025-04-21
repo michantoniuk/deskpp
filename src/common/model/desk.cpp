@@ -45,34 +45,28 @@ Booking Desk::getBookingForDate(const QDate &date) const {
                            [&date](const Booking &booking) {
                                return booking.containsDate(date);
                            });
-
     return (it != _bookings.end()) ? *it : Booking();
 }
 
 std::vector<Booking> Desk::getBookingsAfterDate(const QDate &date) const {
     std::vector<Booking> result;
-
     std::copy_if(_bookings.begin(), _bookings.end(), std::back_inserter(result),
                  [&date](const Booking &booking) {
                      return booking.getDateFrom() >= date;
                  });
-
     std::sort(result.begin(), result.end(),
               [](const Booking &a, const Booking &b) {
                   return a.getDateFrom() < b.getDateFrom();
               });
-
     return result;
 }
 
 std::vector<Booking> Desk::getBookingsContainingDate(const QDate &date) const {
     std::vector<Booking> result;
-
     std::copy_if(_bookings.begin(), _bookings.end(), std::back_inserter(result),
                  [&date](const Booking &booking) {
                      return booking.containsDate(date);
                  });
-
     return result;
 }
 
@@ -88,12 +82,10 @@ void Desk::addBooking(const Booking &booking) {
 
 void Desk::cancelBooking(int bookingId) {
     if (bookingId <= 0) return;
-
     auto it = std::remove_if(_bookings.begin(), _bookings.end(),
                              [bookingId](const Booking &booking) {
                                  return booking.getId() == bookingId;
                              });
-
     if (it != _bookings.end()) {
         _bookings.erase(it, _bookings.end());
     }

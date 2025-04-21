@@ -24,4 +24,4 @@ private:
     UserService &_userService;
 };
 
-#endif // USER_CONTROLLER_H
+#endif

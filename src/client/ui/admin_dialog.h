@@ -59,4 +59,4 @@ private:
     int selectedDeskId = -1;
 };
 
-#endif // ADMIN_DIALOG_H
+#endif

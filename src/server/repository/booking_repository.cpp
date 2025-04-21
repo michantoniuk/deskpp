@@ -31,7 +31,6 @@ Booking BookingRepository::bookingFromRow(SQLite::Statement &query) {
 
 std::vector<Booking> BookingRepository::findByDeskId(int deskId) {
     std::vector<Booking> bookings;
-
     SQLite::Statement query(*_db, "SELECT id, desk_id, user_id, date, date_to "
                             "FROM bookings WHERE desk_id = ? ORDER BY date");
     query.bind(1, deskId);
@@ -39,13 +38,11 @@ std::vector<Booking> BookingRepository::findByDeskId(int deskId) {
     while (query.executeStep()) {
         bookings.push_back(bookingFromRow(query));
     }
-
     return bookings;
 }
 
 std::vector<Booking> BookingRepository::findByUserId(int userId) {
     std::vector<Booking> bookings;
-
     SQLite::Statement query(*_db, "SELECT id, desk_id, user_id, date, date_to "
                             "FROM bookings WHERE user_id = ? ORDER BY date");
     query.bind(1, userId);
@@ -53,13 +50,11 @@ std::vector<Booking> BookingRepository::findByUserId(int userId) {
     while (query.executeStep()) {
         bookings.push_back(bookingFromRow(query));
     }
-
     return bookings;
 }
 
 std::vector<Booking> BookingRepository::findByDate(const std::string &date) {
     std::vector<Booking> bookings;
-
     SQLite::Statement query(*_db, "SELECT id, desk_id, user_id, date, date_to "
                             "FROM bookings WHERE ? BETWEEN date AND date_to ORDER BY date");
     query.bind(1, date);
@@ -67,14 +62,12 @@ std::vector<Booking> BookingRepository::findByDate(const std::string &date) {
     while (query.executeStep()) {
         bookings.push_back(bookingFromRow(query));
     }
-
     return bookings;
 }
 
 std::vector<Booking> BookingRepository::findByDateRange(int deskId, const std::string &dateFrom,
                                                         const std::string &dateTo) {
     std::vector<Booking> bookings;
-
     SQLite::Statement query(*_db, "SELECT id, desk_id, user_id, date, date_to "
                             "FROM bookings WHERE desk_id = ? AND NOT (date_to < ? OR date > ?) "
                             "ORDER BY date");
@@ -85,7 +78,6 @@ std::vector<Booking> BookingRepository::findByDateRange(int deskId, const std::s
     while (query.executeStep()) {
         bookings.push_back(bookingFromRow(query));
     }
-
     return bookings;
 }
 
@@ -99,6 +91,5 @@ bool BookingRepository::hasOverlappingBooking(int deskId, const std::string &dat
     if (query.executeStep()) {
         return query.getColumn(0).getInt() > 0;
     }
-
     return false;
 }

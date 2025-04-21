@@ -15,4 +15,4 @@ private:
     static Building buildingFromRow(SQLite::Statement &query);
 };
 
-#endif // BUILDING_REPOSITORY_H
+#endif

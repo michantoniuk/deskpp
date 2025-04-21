@@ -24,7 +24,6 @@ LoginDialog::LoginDialog(ApiClient &apiClient, QWidget *parent)
 
     auto loginBtnLayout = new QHBoxLayout();
 
-    // Create and connect buttons properly
     auto loginBtn = new QPushButton("Login", this);
     connect(loginBtn, &QPushButton::clicked, this, &LoginDialog::login);
     loginBtnLayout->addWidget(loginBtn);

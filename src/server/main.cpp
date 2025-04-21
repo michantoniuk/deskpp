@@ -1,4 +1,3 @@
-#include <iostream>
 #include <memory>
 #include <crow.h>
 #include <SQLiteCpp/SQLiteCpp.h>
@@ -37,6 +36,7 @@ int main(int argc, char *argv[]) {
             SQLite::Statement query(*db, "SELECT name FROM sqlite_master WHERE type='table' AND name='buildings'");
             tableExists = query.executeStep();
         } catch (...) {
+            // Ignore exceptions during check
         }
 
         // Initialize database if needed

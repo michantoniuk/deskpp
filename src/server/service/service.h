@@ -38,4 +38,4 @@ protected:
     }
 };
 
-#endif // SERVICE_H
+#endif

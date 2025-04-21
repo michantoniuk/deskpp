@@ -7,4 +7,4 @@
 #include "desk.h"
 #include "booking.h"
 
-#endif // MODEL_H
+#endif

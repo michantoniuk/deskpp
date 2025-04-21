@@ -16,13 +16,11 @@ crow::response BookingController::getBuildings(const crow::request &req) {
 crow::response BookingController::getDesks(const crow::request &req) {
     try {
         int buildingId = -1;
-
         // Get building ID from query param if provided
         auto buildingIdParam = req.url_params.get("buildingId");
         if (buildingIdParam) {
             buildingId = std::stoi(buildingIdParam);
         }
-
         json result = _bookingService.getDesksByBuilding(buildingId);
         return successResponse(result);
     } catch (const std::exception &ex) {
@@ -36,7 +34,6 @@ crow::response BookingController::getBookings(const crow::request &req) {
         if (!deskIdParam) {
             return errorResponse(400, "Missing deskId parameter");
         }
-
         int deskId = std::stoi(deskIdParam);
 
         // Check for date params
@@ -45,7 +42,6 @@ crow::response BookingController::getBookings(const crow::request &req) {
         auto dateParam = req.url_params.get("date");
 
         json result;
-
         if (dateFromParam && dateToParam) {
             // Date range
             result = _bookingService.getBookingsForDeskInRange(deskId, dateFromParam, dateToParam);
@@ -55,7 +51,6 @@ crow::response BookingController::getBookings(const crow::request &req) {
         } else {
             return errorResponse(400, "Missing date parameters");
         }
-
         return successResponse(result);
     } catch (const std::exception &ex) {
         return errorResponse(500, "Server error");
@@ -75,11 +70,9 @@ crow::response BookingController::addBooking(const crow::request &req) {
         std::string dateTo = (*params)["dateTo"].get<std::string>();
 
         json result = _bookingService.addBooking(deskId, userId, dateFrom, dateTo);
-
         if (result.contains("status") && result["status"] == "error") {
             return errorResponse(400, result["message"]);
         }
-
         return successResponse(result);
     } catch (const std::exception &ex) {
         return errorResponse(500, "Server error");
@@ -89,11 +82,9 @@ crow::response BookingController::addBooking(const crow::request &req) {
 crow::response BookingController::cancelBooking(int bookingId) {
     try {
         json result = _bookingService.cancelBooking(bookingId);
-
         if (result.contains("status") && result["status"] == "error") {
             return errorResponse(404, result["message"]);
         }
-
         return successResponse(result);
     } catch (const std::exception &ex) {
         return errorResponse(500, "Server error");

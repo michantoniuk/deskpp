@@ -257,35 +257,6 @@ void AdminDialog::addDesk() {
     }
 }
 
-void AdminDialog::updateDesk() {
-    if (selectedDeskId < 0) return;
-
-    std::string deskId = deskIdEdit->text().toStdString();
-    int buildingId = buildingCombo->currentData().toInt();
-    int floor = floorSpin->value();
-    int x = xSpin->value();
-    int y = ySpin->value();
-
-    if (apiClient.updateDesk(selectedDeskId, deskId, buildingId, floor, x, y)) {
-        QMessageBox::information(this, "Success", "Desk updated");
-        refreshDesks();
-    }
-}
-
-void AdminDialog::deleteDesk() {
-    if (selectedDeskId < 0) return;
-
-    if (QMessageBox::question(this, "Confirm Delete", "Are you sure you want to delete this desk?")
-        != QMessageBox::Yes) {
-        return;
-    }
-
-    if (apiClient.deleteDesk(selectedDeskId)) {
-        QMessageBox::information(this, "Success", "Desk deleted");
-        refreshDesks();
-    }
-}
-
 void AdminDialog::selectDesk(int row, int column) {
     Q_UNUSED(column);
 
@@ -305,5 +276,38 @@ void AdminDialog::selectDesk(int row, int column) {
             xSpin->setValue(xItem->text().toInt());
             ySpin->setValue(yItem->text().toInt());
         }
+    }
+}
+
+void AdminDialog::updateDesk() {
+    if (selectedDeskId < 0) return;
+
+    std::string deskId = deskIdEdit->text().toStdString();
+    int buildingId = buildingCombo->currentData().toInt();
+    int floor = floorSpin->value();
+    int x = xSpin->value();
+    int y = ySpin->value();
+
+    if (apiClient.updateDesk(selectedDeskId, deskId, buildingId, floor, x, y)) {
+        QMessageBox::information(this, "Success", "Desk updated");
+        refreshDesks();
+    } else {
+        QMessageBox::warning(this, "Error", "Failed to update desk");
+    }
+}
+
+void AdminDialog::deleteDesk() {
+    if (selectedDeskId < 0) return;
+
+    if (QMessageBox::question(this, "Confirm Delete", "Are you sure you want to delete this desk?")
+        != QMessageBox::Yes) {
+        return;
+    }
+
+    if (apiClient.deleteDesk(selectedDeskId)) {
+        QMessageBox::information(this, "Success", "Desk deleted");
+        refreshDesks();
+    } else {
+        QMessageBox::warning(this, "Error", "Failed to delete desk");
     }
 }

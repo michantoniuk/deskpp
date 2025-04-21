@@ -3,9 +3,7 @@
 
 #include "entity.h"
 #include "booking.h"
-#include <string>
 #include <vector>
-#include <QDate>
 
 class Desk : public Entity {
 public:
@@ -61,14 +59,10 @@ public:
     bool isBookedOnDate(const QDate &date) const { return !isAvailableOn(date); }
 
 private:
-    std::string _deskId;
-    std::string _buildingId;
-    int _floorNumber = 0;
+    std::string _deskId, _buildingId;
+    int _floorNumber = 0, _locationX = 0, _locationY = 0;
     std::vector<Booking> _bookings;
-    int _locationX = 0;
-    int _locationY = 0;
 
     void sortBookings();
 };
-
-#endif // DESK_H
+#endif

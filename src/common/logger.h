@@ -3,7 +3,6 @@
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <string>
 
 inline void initLogger(const std::string &appName, bool verbose = false) {
     auto console = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -18,4 +17,4 @@ inline void initLogger(const std::string &appName, bool verbose = false) {
 #define LOG_WARNING(...) spdlog::warn(__VA_ARGS__)
 #define LOG_ERROR(...) spdlog::error(__VA_ARGS__)
 
-#endif // LOGGER_H
+#endif

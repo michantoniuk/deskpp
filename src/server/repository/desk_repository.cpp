@@ -33,7 +33,6 @@ Desk DeskRepository::deskFromRow(SQLite::Statement &query) {
 
 std::vector<Desk> DeskRepository::findByBuildingId(int buildingId) {
     std::vector<Desk> desks;
-
     SQLite::Statement query(*_db, "SELECT id, name, building_id, floor_number, location_x, location_y "
                             "FROM desks WHERE building_id = ?");
     query.bind(1, buildingId);
@@ -41,13 +40,11 @@ std::vector<Desk> DeskRepository::findByBuildingId(int buildingId) {
     while (query.executeStep()) {
         desks.push_back(deskFromRow(query));
     }
-
     return desks;
 }
 
 std::vector<Desk> DeskRepository::findByFloorNumber(int buildingId, int floorNumber) {
     std::vector<Desk> desks;
-
     SQLite::Statement query(*_db, "SELECT id, name, building_id, floor_number, location_x, location_y "
                             "FROM desks WHERE building_id = ? AND floor_number = ?");
     query.bind(1, buildingId);
@@ -56,7 +53,6 @@ std::vector<Desk> DeskRepository::findByFloorNumber(int buildingId, int floorNum
     while (query.executeStep()) {
         desks.push_back(deskFromRow(query));
     }
-
     return desks;
 }
 
@@ -68,6 +64,5 @@ std::optional<Desk> DeskRepository::findByDeskNumber(const std::string &deskId) 
     if (query.executeStep()) {
         return deskFromRow(query);
     }
-
     return std::nullopt;
 }

@@ -33,16 +33,14 @@ protected:
 
     std::optional<json> validateRequest(const crow::request &req, const std::vector<std::string> &requiredFields) {
         json params = parseJson(req.body);
-
         // Check required fields
         for (const auto &field: requiredFields) {
             if (!params.contains(field)) {
                 return std::nullopt;
             }
         }
-
         return params;
     }
 };
 
-#endif // CONTROLLER_H
+#endif

@@ -2,7 +2,6 @@
 #define BUILDING_H
 
 #include "entity.h"
-#include <string>
 
 class Building : public Entity {
 public:
@@ -21,8 +20,6 @@ public:
     void setAddress(const std::string &address) { _address = address; }
 
 private:
-    std::string _name;
-    std::string _address;
+    std::string _name, _address;
 };
-
-#endif // BUILDING_H
+#endif

@@ -15,11 +15,9 @@ crow::response AdminController::addBuilding(const crow::request &req) {
         std::string address = (*params)["address"].get<std::string>();
 
         json result = _bookingService.addBuilding(name, address);
-
         if (result.contains("status") && result["status"] == "error") {
             return errorResponse(400, result["message"]);
         }
-
         return successResponse(result);
     } catch (const std::exception &ex) {
         return errorResponse(500, "Server error");
@@ -37,11 +35,9 @@ crow::response AdminController::updateBuilding(int id, const crow::request &req)
         std::string address = (*params)["address"].get<std::string>();
 
         json result = _bookingService.updateBuilding(id, name, address);
-
         if (result.contains("status") && result["status"] == "error") {
             return errorResponse(400, result["message"]);
         }
-
         return successResponse(result);
     } catch (const std::exception &ex) {
         return errorResponse(500, "Server error");
@@ -51,11 +47,9 @@ crow::response AdminController::updateBuilding(int id, const crow::request &req)
 crow::response AdminController::deleteBuilding(int id) {
     try {
         json result = _bookingService.deleteBuilding(id);
-
         if (result.contains("status") && result["status"] == "error") {
             return errorResponse(400, result["message"]);
         }
-
         return successResponse(result);
     } catch (const std::exception &ex) {
         return errorResponse(500, "Server error");
@@ -86,11 +80,9 @@ crow::response AdminController::addDesk(const crow::request &req) {
         }
 
         json result = _bookingService.addDesk(deskId, buildingId, floorNumber, locationX, locationY);
-
         if (result.contains("status") && result["status"] == "error") {
             return errorResponse(400, result["message"]);
         }
-
         return successResponse(result);
     } catch (const std::exception &ex) {
         return errorResponse(500, "Server error");
@@ -100,13 +92,10 @@ crow::response AdminController::addDesk(const crow::request &req) {
 crow::response AdminController::updateDesk(int id, const crow::request &req) {
     try {
         json deskData = parseJson(req.body);
-
         json result = _bookingService.updateDesk(id, deskData);
-
         if (result.contains("status") && result["status"] == "error") {
             return errorResponse(400, result["message"]);
         }
-
         return successResponse(result);
     } catch (const std::exception &ex) {
         return errorResponse(500, "Server error");
@@ -116,11 +105,9 @@ crow::response AdminController::updateDesk(int id, const crow::request &req) {
 crow::response AdminController::deleteDesk(int id) {
     try {
         json result = _bookingService.deleteDesk(id);
-
         if (result.contains("status") && result["status"] == "error") {
             return errorResponse(400, result["message"]);
         }
-
         return successResponse(result);
     } catch (const std::exception &ex) {
         return errorResponse(500, "Server error");

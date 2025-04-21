@@ -100,7 +100,6 @@ BookingDialog::BookingDialog(Desk &desk, const QDate &date, ApiClient &apiClient
 }
 
 void BookingDialog::bookDesk() {
-    // Verify login
     if (!apiClient.isLoggedIn()) {
         QMessageBox::warning(this, "Login Required", "You must be logged in to book a desk");
         return;
@@ -109,7 +108,6 @@ void BookingDialog::bookDesk() {
     QDate dateFrom = dateFromEdit->date();
     QDate dateTo = dateToEdit->date();
 
-    // Validate date range
     if (dateFrom > dateTo) {
         QMessageBox::warning(this, "Invalid Dates", "End date must be after or equal to start date");
         return;
@@ -117,15 +115,12 @@ void BookingDialog::bookDesk() {
 
     std::string dateFromStr = dateFrom.toString("yyyy-MM-dd").toStdString();
     std::string dateToStr = dateTo.toString("yyyy-MM-dd").toStdString();
-
-    // Get user ID
     int userId = apiClient.getCurrentUser()->getId();
 
     if (apiClient.addBooking(desk.getId(), userId, dateFromStr, dateToStr)) {
         // Add booking to local desk object for UI update
         Booking newBooking(0, desk.getId(), userId, dateFrom, dateTo);
         desk.addBooking(newBooking);
-
         QMessageBox::information(this, "Success", "Desk booked successfully");
         accept();
     } else {
@@ -134,7 +129,6 @@ void BookingDialog::bookDesk() {
 }
 
 void BookingDialog::cancelBooking() {
-    // Verify login
     if (!apiClient.isLoggedIn()) {
         QMessageBox::warning(this, "Login Required", "You must be logged in to cancel a booking");
         return;

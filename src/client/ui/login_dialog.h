@@ -37,4 +37,4 @@ private:
     QLineEdit *regNameEdit;
 };
 
-#endif // LOGIN_DIALOG_H
+#endif

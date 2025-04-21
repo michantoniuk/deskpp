@@ -22,7 +22,6 @@ BookingView::BookingView(QWidget *parent)
 }
 
 void BookingView::setupUi() {
-    // Main widget and layout
     auto central = new QWidget(this);
     setCentralWidget(central);
     auto mainLayout = new QVBoxLayout(central);
@@ -59,7 +58,7 @@ void BookingView::setupUi() {
 
     // User label - display login status
     userLabel = new QLabel(this);
-    updateLoginStatus(); // Set initial value
+    updateLoginStatus();
     optionsLayout->addWidget(userLabel);
 
     topLayout->addWidget(optionsPanel);
@@ -177,12 +176,6 @@ void BookingView::updateDeskMap() {
                     QString::fromStdString(booking.getDateToString()),
                     "yyyy-MM-dd").toString("MM/dd/yyyy");
 
-                // Get current username if logged in
-                std::string currentUsername = "";
-                if (apiClient.isLoggedIn() && apiClient.getCurrentUser()) {
-                    currentUsername = apiClient.getCurrentUser()->getUsername();
-                }
-
                 if (apiClient.isLoggedIn() && apiClient.getCurrentUser()->getId() == booking.getUserId()) {
                     // Blue for user's own bookings
                     button->setStyleSheet("background-color: #2196F3; color: white;");
@@ -256,8 +249,6 @@ void BookingView::handleUserLogin() {
 void BookingView::handleUserLogout() {
     apiClient.logoutUser();
     updateLoginStatus();
-
-    // Show login dialog after logout
     showLoginDialog();
 }
 

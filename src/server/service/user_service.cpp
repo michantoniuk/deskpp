@@ -11,11 +11,9 @@ json UserService::getAllUsers() {
 
 json UserService::getUserById(int id) {
     auto user = _repository.findById(id);
-
     if (!user) {
         return errorResponse("User not found");
     }
-
     return successResponse({{"user", user->toJson()}});
 }
 
@@ -34,7 +32,6 @@ json UserService::registerUser(const std::string &username, const std::string &p
     user.setPasswordHash(hashPassword(password));
 
     User createdUser = _repository.add(user);
-
     return successResponse({{"user", createdUser.toJson()}});
 }
 
@@ -67,22 +64,18 @@ json UserService::updateUser(int id, const json &userData) {
     if (userData.contains("username")) {
         user->setUsername(userData["username"].get<std::string>());
     }
-
     if (userData.contains("email")) {
         user->setEmail(userData["email"].get<std::string>());
     }
-
     if (userData.contains("fullName")) {
         user->setFullName(userData["fullName"].get<std::string>());
     }
-
     if (userData.contains("password")) {
         user->setPasswordHash(hashPassword(userData["password"].get<std::string>()));
     }
 
     // Save changes
     _repository.update(*user);
-
     return successResponse({{"user", user->toJson()}});
 }
 
@@ -93,7 +86,6 @@ json UserService::deleteUser(int id) {
     }
 
     _repository.remove(id);
-
     return successResponse({{"message", "User deleted"}});
 }
 

@@ -2,7 +2,6 @@
 #define BOOKING_H
 
 #include "entity.h"
-#include <string>
 #include <QDate>
 
 class Booking : public Entity {
@@ -47,10 +46,7 @@ public:
     void setDateTo(const std::string &dateTo);
 
 private:
-    int _deskId = 0;
-    int _userId = 0;
-    QDate _dateFrom;
-    QDate _dateTo;
+    int _deskId = 0, _userId = 0;
+    QDate _dateFrom, _dateTo;
 };
-
-#endif // BOOKING_H
+#endif

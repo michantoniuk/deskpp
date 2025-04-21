@@ -32,6 +32,5 @@ std::optional<Building> BuildingRepository::findByName(const std::string &name) 
     if (query.executeStep()) {
         return buildingFromRow(query);
     }
-
     return std::nullopt;
 }

@@ -23,4 +23,4 @@ private:
     static Booking bookingFromRow(SQLite::Statement &query);
 };
 
-#endif // BOOKING_REPOSITORY_H
+#endif

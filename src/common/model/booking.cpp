@@ -19,11 +19,9 @@ bool Booking::containsDate(const std::string &date) const {
 }
 
 bool Booking::overlapsWithPeriod(const QDate &dateFrom, const QDate &dateTo) const {
-    // Check for consecutive bookings (not overlap)
     if (dateFrom == _dateTo.addDays(1) || dateTo.addDays(1) == _dateFrom) {
         return false;
     }
-    // General overlap check
     return !(dateTo < _dateFrom || dateFrom > _dateTo);
 }
 
@@ -36,7 +34,6 @@ bool Booking::overlapsWithPeriod(const std::string &dateFrom, const std::string 
 
 Booking Booking::fromJson(const json &j) {
     Booking booking;
-
     if (j.contains("id") && !j["id"].is_null())
         booking.setId(j["id"].get<int>());
 
@@ -60,7 +57,7 @@ Booking Booking::fromJson(const json &j) {
     else if (j.contains("date_to") && !j["date_to"].is_null())
         booking.setDateTo(j["date_to"].get<std::string>());
     else if (booking.getDateFrom().isValid())
-        booking.setDateTo(booking.getDateFrom()); // Default to same day if no end date
+        booking.setDateTo(booking.getDateFrom());
 
     return booking;
 }

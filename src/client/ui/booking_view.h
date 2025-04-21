@@ -6,7 +6,6 @@
 #include <QComboBox>
 #include <QLabel>
 #include <QGridLayout>
-#include <QPushButton>
 #include <QDate>
 #include "common/model/model.h"
 #include "../net/api_client.h"
@@ -30,7 +29,6 @@ private slots:
 
     void deskClicked();
 
-    // User actions
     void showLoginDialog();
 
     void handleUserLogin();
@@ -63,4 +61,4 @@ private:
     QDate selectedDate;
 };
 
-#endif // BOOKING_VIEW_H
+#endif
