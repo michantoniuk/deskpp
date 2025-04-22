@@ -1,25 +1,21 @@
 #include "desk.h"
 #include <algorithm>
 
-Desk::Desk(int id, const std::string &deskId, const std::string &buildingId, int floorNumber,
-           int locationX, int locationY)
-    : Entity(id), _deskId(deskId), _buildingId(buildingId), _floorNumber(floorNumber),
-      _locationX(locationX), _locationY(locationY) {
+Desk::Desk(int id, const std::string &name, int buildingId, int floor)
+    : Entity(id), _name(name), _buildingId(buildingId), _floor(floor) {
 }
 
 json Desk::toJson() const {
     return {
         {"id", getId()},
-        {"deskId", _deskId},
+        {"name", _name},
         {"buildingId", _buildingId},
-        {"floorNumber", _floorNumber},
-        {"locationX", _locationX},
-        {"locationY", _locationY}
+        {"floor", _floor}
     };
 }
 
 std::string Desk::toString() const {
-    return "Desk: " + _deskId + " (ID: " + std::to_string(getId()) + ")";
+    return "Desk: " + _name + " (ID: " + std::to_string(getId()) + ", Floor: " + std::to_string(_floor) + ")";
 }
 
 bool Desk::isAvailableOn(const QDate &date) const {

@@ -4,67 +4,95 @@
 #include <QGroupBox>
 #include <QMessageBox>
 
+#include "common/logger.h"
+
 BookingDialog::BookingDialog(Desk &desk, const QDate &date, ApiClient &apiClient, QWidget *parent)
-    : QDialog(parent), desk(desk), bookingDate(date), apiClient(apiClient) {
+    : QDialog(parent), desk(desk), bookingDate(date), apiClient(apiClient), bookingId(0) {
     setWindowTitle("Desk Booking");
-    setMinimumWidth(350);
+    setMinimumWidth(300);
 
     auto layout = new QVBoxLayout(this);
 
-    // Desk info
-    layout->addWidget(new QLabel(QString("Desk: %1").arg(QString::fromStdString(desk.getDeskId()))));
-    layout->addWidget(new QLabel(QString("Date: %1").arg(date.toString("MM/dd/yyyy"))));
+    // Desk info with floor
+    layout->addWidget(new QLabel(QString("Desk: %1 (Floor %2)")
+        .arg(QString::fromStdString(desk.getName()))
+        .arg(desk.getFloor())));
 
-    // Booking status section
-    bool isBooked = desk.isBookedOnDate(date);
+    // Determine if desk is booked
+    isBooked = desk.isBookedOnDate(date);
 
-    QGroupBox *statusGroup = new QGroupBox("Booking Status", this);
-    QVBoxLayout *statusLayout = new QVBoxLayout(statusGroup);
+    // Get current user ID
+    int currentUserId = apiClient.getCurrentUser() ? apiClient.getCurrentUser()->getId() : -1;
+    bool isOwnBooking = false;
 
-    statusLayout->addWidget(new QLabel(isBooked ? "Status: Booked" : "Status: Available"));
+    // Create booking info section
+    auto bookingInfoGroup = new QGroupBox("Booking Information", this);
+    auto bookingInfoLayout = new QVBoxLayout(bookingInfoGroup);
 
-    // If booked, show booking details
+    // Find booking details if booked
     if (isBooked) {
         auto bookings = desk.getBookingsContainingDate(date);
         if (!bookings.empty()) {
             const auto &booking = bookings[0];
+            bookingId = booking.getId();
+            int bookingUserId = booking.getUserId();
+            isOwnBooking = (currentUserId == bookingUserId);
 
-            // Try to get booker's username
-            QString bookedBy = QString::number(booking.getUserId());
+            // Show booking period
+            QString bookedFrom = QDate::fromString(
+                QString::fromStdString(booking.getDateFromString()),
+                "yyyy-MM-dd").toString("MM/dd/yyyy");
+            QString bookedTo = QDate::fromString(
+                QString::fromStdString(booking.getDateToString()),
+                "yyyy-MM-dd").toString("MM/dd/yyyy");
 
-            // Show if current user is owner
-            bool isOwner = apiClient.isLoggedIn() &&
-                           apiClient.getCurrentUser()->getId() == booking.getUserId();
-            if (isOwner) {
-                bookedBy += " (You)";
+            bookingInfoLayout->addWidget(new QLabel(QString("Status: Booked")));
+
+            // Show if booking is by current user
+            if (isOwnBooking) {
+                bookingInfoLayout->addWidget(new QLabel("Booked by: You"));
+            } else {
+                bookingInfoLayout->addWidget(new QLabel(QString("Booked by: User #%1").arg(bookingUserId)));
             }
 
-            statusLayout->addWidget(new QLabel(QString("Booked by: %1").arg(bookedBy)));
-            statusLayout->addWidget(new QLabel(QString("From: %1").arg(
-                QString::fromStdString(booking.getDateFromString()))));
-            statusLayout->addWidget(new QLabel(QString("To: %1").arg(
-                QString::fromStdString(booking.getDateToString()))));
+            bookingInfoLayout->addWidget(new QLabel(QString("From: %1").arg(bookedFrom)));
+            bookingInfoLayout->addWidget(new QLabel(QString("To: %1").arg(bookedTo)));
         }
+    } else {
+        bookingInfoLayout->addWidget(new QLabel("Status: Available"));
     }
 
-    layout->addWidget(statusGroup);
+    layout->addWidget(bookingInfoGroup);
 
-    // Date range for new booking
-    auto dateGroup = new QGroupBox("Booking Period", this);
-    auto dateLayout = new QHBoxLayout(dateGroup);
+    // Date range for new booking (only shown when desk is available)
+    auto dateGroup = new QGroupBox("New Booking", this);
+    auto dateLayout = new QVBoxLayout(dateGroup);
 
-    dateLayout->addWidget(new QLabel("From:"));
+    auto dateRangeLayout = new QHBoxLayout();
+
+    dateRangeLayout->addWidget(new QLabel("From:"));
     dateFromEdit = new QDateEdit(date, this);
     dateFromEdit->setCalendarPopup(true);
-    dateLayout->addWidget(dateFromEdit);
+    dateFromEdit->setMinimumDate(QDate::currentDate());
+    dateRangeLayout->addWidget(dateFromEdit);
 
-    dateLayout->addWidget(new QLabel("To:"));
+    dateRangeLayout->addWidget(new QLabel("To:"));
     dateToEdit = new QDateEdit(date, this);
     dateToEdit->setCalendarPopup(true);
-    dateLayout->addWidget(dateToEdit);
+    dateToEdit->setMinimumDate(date);
+    dateRangeLayout->addWidget(dateToEdit);
+
+    dateLayout->addLayout(dateRangeLayout);
+
+    // Add note about availability
+    QLabel *noteLabel = new QLabel("Select the date range for your new booking.");
+    noteLabel->setWordWrap(true);
+    dateLayout->addWidget(noteLabel);
 
     layout->addWidget(dateGroup);
-    dateGroup->setVisible(!isBooked); // Only show when desk is available
+
+    // Only show booking controls for available desks
+    dateGroup->setVisible(!isBooked);
 
     // Buttons
     auto buttonLayout = new QHBoxLayout();
@@ -72,42 +100,27 @@ BookingDialog::BookingDialog(Desk &desk, const QDate &date, ApiClient &apiClient
     bookButton = new QPushButton("Book", this);
     connect(bookButton, &QPushButton::clicked, this, &BookingDialog::bookDesk);
     buttonLayout->addWidget(bookButton);
+    bookButton->setVisible(!isBooked);
 
     cancelButton = new QPushButton("Cancel Booking", this);
     connect(cancelButton, &QPushButton::clicked, this, &BookingDialog::cancelBooking);
     buttonLayout->addWidget(cancelButton);
+
+    // Only enable cancel button if this is the user's own booking
+    cancelButton->setVisible(isBooked && isOwnBooking);
 
     auto closeButton = new QPushButton("Close", this);
     connect(closeButton, &QPushButton::clicked, this, &QDialog::reject);
     buttonLayout->addWidget(closeButton);
 
     layout->addLayout(buttonLayout);
-
-    // Set button states
-    bookButton->setEnabled(!isBooked);
-
-    // Only enable cancel button if user is owner or admin
-    bool canCancel = false;
-    if (isBooked && apiClient.isLoggedIn()) {
-        auto bookings = desk.getBookingsContainingDate(date);
-        if (!bookings.empty()) {
-            int bookingUserId = bookings[0].getUserId();
-            int currentUserId = apiClient.getCurrentUser()->getId();
-            canCancel = (bookingUserId == currentUserId) || apiClient.isAdmin();
-        }
-    }
-    cancelButton->setEnabled(canCancel);
 }
 
 void BookingDialog::bookDesk() {
-    if (!apiClient.isLoggedIn()) {
-        QMessageBox::warning(this, "Login Required", "You must be logged in to book a desk");
-        return;
-    }
-
     QDate dateFrom = dateFromEdit->date();
     QDate dateTo = dateToEdit->date();
 
+    // Validate dates
     if (dateFrom > dateTo) {
         QMessageBox::warning(this, "Invalid Dates", "End date must be after or equal to start date");
         return;
@@ -115,49 +128,34 @@ void BookingDialog::bookDesk() {
 
     std::string dateFromStr = dateFrom.toString("yyyy-MM-dd").toStdString();
     std::string dateToStr = dateTo.toString("yyyy-MM-dd").toStdString();
-    int userId = apiClient.getCurrentUser()->getId();
 
-    if (apiClient.addBooking(desk.getId(), userId, dateFromStr, dateToStr)) {
-        // Add booking to local desk object for UI update
-        Booking newBooking(0, desk.getId(), userId, dateFrom, dateTo);
-        desk.addBooking(newBooking);
-        QMessageBox::information(this, "Success", "Desk booked successfully");
+    // Get the current user's ID
+    if (!apiClient.isLoggedIn() || !apiClient.getCurrentUser()) {
+        QMessageBox::warning(this, "Error", "You must be logged in to book a desk");
+        return;
+    }
+
+    int userId = apiClient.getCurrentUser()->getId();
+    int deskId = desk.getId();
+
+    LOG_INFO("Booking desk {} for user {} from {} to {}",
+             deskId, userId, dateFromStr, dateToStr);
+
+    // Make the API call with error handling
+    auto [success, errorMsg] = apiClient.addBooking(deskId, userId, dateFromStr, dateToStr);
+
+    if (success) {
+        LOG_INFO("Booking successful");
         accept();
     } else {
-        QMessageBox::warning(this, "Error", "Could not book the desk");
+        LOG_ERROR("Booking failed: {}", errorMsg.toStdString());
+        QMessageBox::warning(this, "Booking Error", errorMsg);
     }
 }
 
 void BookingDialog::cancelBooking() {
-    if (!apiClient.isLoggedIn()) {
-        QMessageBox::warning(this, "Login Required", "You must be logged in to cancel a booking");
-        return;
-    }
-
-    // Find booking ID
-    int bookingId = 0;
-    auto bookingsOnDate = desk.getBookingsContainingDate(bookingDate);
-
-    if (!bookingsOnDate.empty()) {
-        const auto &booking = bookingsOnDate[0];
-        bookingId = booking.getId();
-
-        // Check if the current user is allowed to cancel this booking
-        int bookingUserId = booking.getUserId();
-        int currentUserId = apiClient.getCurrentUser()->getId();
-        bool isOwner = (bookingUserId == currentUserId);
-        bool isAdmin = apiClient.isAdmin();
-
-        if (!isOwner && !isAdmin) {
-            QMessageBox::warning(this, "Permission Denied",
-                                 "You can only cancel your own bookings unless you are an administrator");
-            return;
-        }
-    }
-
     if (bookingId > 0 && apiClient.cancelBooking(bookingId)) {
         desk.cancelBooking(bookingId);
-        QMessageBox::information(this, "Success", "Booking canceled");
         accept();
     } else {
         QMessageBox::warning(this, "Error", "Could not cancel the booking");

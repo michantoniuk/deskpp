@@ -20,14 +20,10 @@ int main(int argc, char *argv[]) {
     // Create main window
     BookingView window(nullptr, apiClient);
     window.resize(800, 600);
+    window.show();
 
-    // Show login dialog first
-    LoginDialog loginDialog(apiClient);
-    if (loginDialog.exec() == QDialog::Accepted) {
-        window.refreshView();
-        window.show();
-        return app.exec();
-    }
+    // Load initial data if user is logged in
+    window.refreshView();
 
-    return 0;
+    return app.exec();
 }

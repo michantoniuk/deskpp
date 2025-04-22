@@ -19,9 +19,6 @@ bool Booking::containsDate(const std::string &date) const {
 }
 
 bool Booking::overlapsWithPeriod(const QDate &dateFrom, const QDate &dateTo) const {
-    if (dateFrom == _dateTo.addDays(1) || dateTo.addDays(1) == _dateFrom) {
-        return false;
-    }
     return !(dateTo < _dateFrom || dateFrom > _dateTo);
 }
 

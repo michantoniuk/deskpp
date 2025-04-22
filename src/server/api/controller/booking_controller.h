@@ -18,6 +18,8 @@ public:
 
     crow::response cancelBooking(int bookingId);
 
+    crow::response getFloorsByBuilding(int buildingId);
+
 private:
     BookingService &_bookingService;
 };

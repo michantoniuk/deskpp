@@ -5,17 +5,16 @@ UserRepository::UserRepository(std::shared_ptr<SQLite::Database> db)
     : SQLiteRepository<User>(
         db,
         "users",
-        "SELECT id, username, password_hash, email, full_name FROM users ORDER BY username",
-        "SELECT id, username, password_hash, email, full_name FROM users WHERE id = ?",
-        "INSERT INTO users (username, password_hash, email, full_name) VALUES (?, ?, ?, ?)",
-        "UPDATE users SET username = ?, password_hash = ?, email = ?, full_name = ? WHERE id = ?",
+        "SELECT id, username, password_hash, email FROM users ORDER BY username",
+        "SELECT id, username, password_hash, email FROM users WHERE id = ?",
+        "INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)",
+        "UPDATE users SET username = ?, password_hash = ?, email = ? WHERE id = ?",
         "DELETE FROM users WHERE id = ?",
         userFromRow,
         [](SQLite::Statement &stmt, const User &user) {
             stmt.bind(1, user.getUsername());
             stmt.bind(2, user.getPasswordHash());
             stmt.bind(3, user.getEmail());
-            stmt.bind(4, user.getFullName());
         }
     ) {
 }
@@ -24,15 +23,14 @@ User UserRepository::userFromRow(SQLite::Statement &query) {
     User user(
         query.getColumn(0).getInt(),
         query.getColumn(1).getString(),
-        query.getColumn(3).getString(),
-        query.getColumn(4).getString()
+        query.getColumn(3).getString()
     );
     user.setPasswordHash(query.getColumn(2).getString());
     return user;
 }
 
 std::optional<User> UserRepository::findByUsername(const std::string &username) {
-    SQLite::Statement query(*_db, "SELECT id, username, password_hash, email, full_name "
+    SQLite::Statement query(*_db, "SELECT id, username, password_hash, email "
                             "FROM users WHERE username = ?");
     query.bind(1, username);
 
@@ -43,7 +41,7 @@ std::optional<User> UserRepository::findByUsername(const std::string &username) 
 }
 
 std::optional<User> UserRepository::findByEmail(const std::string &email) {
-    SQLite::Statement query(*_db, "SELECT id, username, password_hash, email, full_name "
+    SQLite::Statement query(*_db, "SELECT id, username, password_hash, email "
                             "FROM users WHERE email = ?");
     query.bind(1, email);
 

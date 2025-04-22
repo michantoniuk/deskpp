@@ -27,6 +27,8 @@ private:
     QDateEdit *dateToEdit;
     QPushButton *bookButton;
     QPushButton *cancelButton;
+    bool isBooked;
+    int bookingId;
 };
 
 #endif

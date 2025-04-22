@@ -8,18 +8,9 @@ class UserService : public Service<User> {
 public:
     explicit UserService(UserRepository &userRepository);
 
-    json getAllUsers();
-
-    json getUserById(int id);
-
-    json registerUser(const std::string &username, const std::string &password,
-                      const std::string &email, const std::string &fullName);
+    json registerUser(const std::string &username, const std::string &password, const std::string &email);
 
     json loginUser(const std::string &username, const std::string &password);
-
-    json updateUser(int id, const json &userData);
-
-    json deleteUser(int id);
 
 private:
     UserRepository &_userRepo;

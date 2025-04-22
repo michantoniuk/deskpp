@@ -34,7 +34,6 @@ private:
     QLineEdit *regUsernameEdit;
     QLineEdit *regPasswordEdit;
     QLineEdit *regEmailEdit;
-    QLineEdit *regNameEdit;
 };
 
 #endif

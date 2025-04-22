@@ -11,10 +11,6 @@ public:
 
     std::vector<Desk> findByBuildingId(int buildingId);
 
-    std::vector<Desk> findByFloorNumber(int buildingId, int floorNumber);
-
-    std::optional<Desk> findByDeskNumber(const std::string &deskId);
-
 private:
     static Desk deskFromRow(SQLite::Statement &query);
 };

@@ -6,6 +6,7 @@
 LoginDialog::LoginDialog(ApiClient &apiClient, QWidget *parent)
     : QDialog(parent), apiClient(apiClient) {
     setWindowTitle("DeskPP - Login");
+    setMinimumWidth(300);
 
     stack = new QStackedWidget(this);
 
@@ -43,12 +44,10 @@ LoginDialog::LoginDialog(ApiClient &apiClient, QWidget *parent)
     regPasswordEdit = new QLineEdit();
     regPasswordEdit->setEchoMode(QLineEdit::Password);
     regEmailEdit = new QLineEdit();
-    regNameEdit = new QLineEdit();
 
     registerForm->addRow("Username:", regUsernameEdit);
     registerForm->addRow("Password:", regPasswordEdit);
     registerForm->addRow("Email:", regEmailEdit);
-    registerForm->addRow("Full Name:", regNameEdit);
     registerLayout->addLayout(registerForm);
 
     auto regBtnLayout = new QHBoxLayout();
@@ -76,13 +75,17 @@ void LoginDialog::login() {
     QString username = usernameEdit->text();
     QString password = passwordEdit->text();
 
+    if (username.isEmpty() || password.isEmpty()) {
+        QMessageBox::warning(this, "Error", "Please enter username and password");
+        return;
+    }
+
     auto user = apiClient.loginUser(username.toStdString(), password.toStdString());
 
     if (user) {
-        QMessageBox::information(this, "Success", "Logged in successfully");
         accept();
     } else {
-        QMessageBox::warning(this, "Error", "Login failed");
+        QMessageBox::warning(this, "Error", "Login failed. Please check your credentials.");
     }
 }
 
@@ -90,16 +93,19 @@ void LoginDialog::registerUser() {
     QString username = regUsernameEdit->text();
     QString password = regPasswordEdit->text();
     QString email = regEmailEdit->text();
-    QString name = regNameEdit->text();
+
+    if (username.isEmpty() || password.isEmpty() || email.isEmpty()) {
+        QMessageBox::warning(this, "Error", "All fields are required");
+        return;
+    }
 
     auto user = apiClient.registerUser(username.toStdString(), password.toStdString(),
-                                       email.toStdString(), name.toStdString());
+                                       email.toStdString());
 
     if (user) {
-        QMessageBox::information(this, "Success", "Account created successfully");
         accept();
     } else {
-        QMessageBox::warning(this, "Error", "Registration failed");
+        QMessageBox::warning(this, "Error", "Registration failed. Username may be taken.");
     }
 }
 

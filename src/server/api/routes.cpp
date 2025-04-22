@@ -1,7 +1,7 @@
 #include "routes.h"
 
 void registerRoutes(crow::SimpleApp &app, BookingController &bookingController,
-                    UserController &userController, AdminController &adminController) {
+                    UserController &userController) {
     // Buildings endpoint
     CROW_ROUTE(app, "/api/buildings").methods(crow::HTTPMethod::GET)
     ([&bookingController](const crow::request &req) {
@@ -31,16 +31,6 @@ void registerRoutes(crow::SimpleApp &app, BookingController &bookingController,
     });
 
     // User endpoints
-    CROW_ROUTE(app, "/api/users").methods(crow::HTTPMethod::GET)
-    ([&userController](const crow::request &req) {
-        return userController.getUsers(req);
-    });
-
-    CROW_ROUTE(app, "/api/users/<int>").methods(crow::HTTPMethod::GET)
-    ([&userController](int userId) {
-        return userController.getUser(userId);
-    });
-
     CROW_ROUTE(app, "/api/users/register").methods(crow::HTTPMethod::POST)
     ([&userController](const crow::request &req) {
         return userController.registerUser(req);
@@ -51,45 +41,8 @@ void registerRoutes(crow::SimpleApp &app, BookingController &bookingController,
         return userController.loginUser(req);
     });
 
-    CROW_ROUTE(app, "/api/users/<int>").methods(crow::HTTPMethod::PUT)
-    ([&userController](const crow::request &req, int userId) {
-        return userController.updateUser(userId, req);
-    });
-
-    CROW_ROUTE(app, "/api/users/<int>").methods(crow::HTTPMethod::DELETE)
-    ([&userController](int userId) {
-        return userController.deleteUser(userId);
-    });
-
-    // Admin routes for building management
-    CROW_ROUTE(app, "/api/admin/buildings").methods(crow::HTTPMethod::POST)
-    ([&adminController](const crow::request &req) {
-        return adminController.addBuilding(req);
-    });
-
-    CROW_ROUTE(app, "/api/admin/buildings/<int>").methods(crow::HTTPMethod::PUT)
-    ([&adminController](const crow::request &req, int buildingId) {
-        return adminController.updateBuilding(buildingId, req);
-    });
-
-    CROW_ROUTE(app, "/api/admin/buildings/<int>").methods(crow::HTTPMethod::DELETE)
-    ([&adminController](int buildingId) {
-        return adminController.deleteBuilding(buildingId);
-    });
-
-    // Admin routes for desk management
-    CROW_ROUTE(app, "/api/admin/desks").methods(crow::HTTPMethod::POST)
-    ([&adminController](const crow::request &req) {
-        return adminController.addDesk(req);
-    });
-
-    CROW_ROUTE(app, "/api/admin/desks/<int>").methods(crow::HTTPMethod::PUT)
-    ([&adminController](const crow::request &req, int deskId) {
-        return adminController.updateDesk(deskId, req);
-    });
-
-    CROW_ROUTE(app, "/api/admin/desks/<int>").methods(crow::HTTPMethod::DELETE)
-    ([&adminController](int deskId) {
-        return adminController.deleteDesk(deskId);
+    CROW_ROUTE(app, "/api/buildings/<int>/floors").methods(crow::HTTPMethod::GET)
+    ([&bookingController](int buildingId) {
+        return bookingController.getFloorsByBuilding(buildingId);
     });
 }

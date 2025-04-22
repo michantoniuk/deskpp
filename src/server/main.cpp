@@ -3,7 +3,6 @@
 #include <SQLiteCpp/SQLiteCpp.h>
 #include "api/controller/booking_controller.h"
 #include "api/controller/user_controller.h"
-#include "api/controller/admin_controller.h"
 #include "api/routes.h"
 #include "service/user_service.h"
 #include "service/booking_service.h"
@@ -49,16 +48,15 @@ int main(int argc, char *argv[]) {
             db->exec("CREATE TABLE buildings ("
                 "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 "name TEXT NOT NULL,"
-                "address TEXT"
+                "address TEXT,"
+                "num_floors INTEGER DEFAULT 1"
                 ");");
 
             db->exec("CREATE TABLE desks ("
                 "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 "name TEXT NOT NULL,"
                 "building_id INTEGER NOT NULL,"
-                "floor_number INTEGER NOT NULL,"
-                "location_x INTEGER DEFAULT 0,"
-                "location_y INTEGER DEFAULT 0,"
+                "floor INTEGER DEFAULT 1,"
                 "FOREIGN KEY (building_id) REFERENCES buildings(id) ON DELETE CASCADE"
                 ");");
 
@@ -67,7 +65,6 @@ int main(int argc, char *argv[]) {
                 "username TEXT NOT NULL UNIQUE,"
                 "password_hash TEXT NOT NULL,"
                 "email TEXT NOT NULL UNIQUE,"
-                "full_name TEXT,"
                 "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
                 ");");
 
@@ -87,35 +84,97 @@ int main(int argc, char *argv[]) {
             db->exec("BEGIN TRANSACTION;");
 
             // Add buildings
-            db->exec("INSERT INTO buildings (name, address) VALUES "
-                "('Krakow A', 'Krakowska St. 123'),"
-                "('Warsaw B', 'Warszawska St. 456');");
+            db->exec("INSERT INTO buildings (name, address, num_floors) VALUES "
+                "('Budynek A', 'ul. Krakowska 123, Warszawa', 2),"
+                "('Budynek B', 'ul. Krakowska 125, Warszawa', 3),"
+                "('Budynek C', 'ul. Warszawska 45, Kraków', 1),"
+                "('Digital Hub', 'ul. Pomorska 12, Gdańsk', 1);");
 
-            // Get building IDs
-            int krakAId = 0, wawBId = 0; {
-                SQLite::Statement query(*db, "SELECT id FROM buildings WHERE name = 'Krakow A'");
-                if (query.executeStep()) krakAId = query.getColumn(0).getInt();
+            // Pobierz ID budynków
+            int buildingA = 0, buildingB = 0, buildingC = 0, buildingD = 0; {
+                SQLite::Statement query(*db, "SELECT id FROM buildings WHERE name = 'Budynek A'");
+                if (query.executeStep()) buildingA = query.getColumn(0).getInt();
             } {
-                SQLite::Statement query(*db, "SELECT id FROM buildings WHERE name = 'Warsaw B'");
-                if (query.executeStep()) wawBId = query.getColumn(0).getInt();
+                SQLite::Statement query(*db, "SELECT id FROM buildings WHERE name = 'Budynek B'");
+                if (query.executeStep()) buildingB = query.getColumn(0).getInt();
+            } {
+                SQLite::Statement query(*db, "SELECT id FROM buildings WHERE name = 'Budynek C'");
+                if (query.executeStep()) buildingC = query.getColumn(0).getInt();
+            } {
+                SQLite::Statement query(*db, "SELECT id FROM buildings WHERE name = 'Digital Hub'");
+                if (query.executeStep()) buildingD = query.getColumn(0).getInt();
             }
 
-            // Add desks
-            if (krakAId > 0 && wawBId > 0) {
-                db->exec("INSERT INTO desks (name, building_id, floor_number, location_x, location_y) VALUES "
-                         "('KrakA-01-001', " + std::to_string(krakAId) + ", 1, 1, 1),"
-                         "('KrakA-01-002', " + std::to_string(krakAId) + ", 1, 2, 1),"
-                         "('KrakA-01-003', " + std::to_string(krakAId) + ", 1, 2, 2),"
-                         "('WawB-01-001', " + std::to_string(wawBId) + ", 1, 1, 1),"
-                         "('WawB-01-002', " + std::to_string(wawBId) + ", 1, 2, 1);");
+            // Dodaj biurka dla budynku A (2 piętra)
+            if (buildingA > 0) {
+                // Biurka na 1. piętrze
+                for (int i = 1; i <= 15; i++) {
+                    std::string deskNum = (i < 10) ? "0" + std::to_string(i) : std::to_string(i);
+                    std::string deskName = "A1-" + deskNum;
+                    db->exec("INSERT INTO desks (name, building_id, floor) VALUES ('" +
+                             deskName + "', " + std::to_string(buildingA) + ", 1);");
+                }
+                // Biurka na 2. piętrze
+                for (int i = 1; i <= 12; i++) {
+                    std::string deskNum = (i < 10) ? "0" + std::to_string(i) : std::to_string(i);
+                    std::string deskName = "A2-" + deskNum;
+                    db->exec("INSERT INTO desks (name, building_id, floor) VALUES ('" +
+                             deskName + "', " + std::to_string(buildingA) + ", 2);");
+                }
+            }
+
+            // Dodaj biurka dla budynku B (3 piętra)
+            if (buildingB > 0) {
+                // Biurka na 1. piętrze
+                for (int i = 1; i <= 10; i++) {
+                    std::string deskNum = (i < 10) ? "0" + std::to_string(i) : std::to_string(i);
+                    std::string deskName = "B1-" + deskNum;
+                    db->exec("INSERT INTO desks (name, building_id, floor) VALUES ('" +
+                             deskName + "', " + std::to_string(buildingB) + ", 1);");
+                }
+                // Biurka na 2. piętrze
+                for (int i = 1; i <= 8; i++) {
+                    std::string deskNum = (i < 10) ? "0" + std::to_string(i) : std::to_string(i);
+                    std::string deskName = "B2-" + deskNum;
+                    db->exec("INSERT INTO desks (name, building_id, floor) VALUES ('" +
+                             deskName + "', " + std::to_string(buildingB) + ", 2);");
+                }
+                // Biurka na 3. piętrze
+                for (int i = 1; i <= 6; i++) {
+                    std::string deskNum = (i < 10) ? "0" + std::to_string(i) : std::to_string(i);
+                    std::string deskName = "B3-" + deskNum;
+                    db->exec("INSERT INTO desks (name, building_id, floor) VALUES ('" +
+                             deskName + "', " + std::to_string(buildingB) + ", 3);");
+                }
+            }
+
+            // Dodaj biurka dla budynku C (1 piętro)
+            if (buildingC > 0) {
+                for (int i = 1; i <= 20; i++) {
+                    std::string deskNum = (i < 10) ? "0" + std::to_string(i) : std::to_string(i);
+                    std::string deskName = "C-" + deskNum;
+                    db->exec("INSERT INTO desks (name, building_id, floor) VALUES ('" +
+                             deskName + "', " + std::to_string(buildingC) + ", 1);");
+                }
+            }
+
+            // Dodaj biurka dla budynku D (1 piętro)
+            if (buildingD > 0) {
+                for (int i = 1; i <= 15; i++) {
+                    std::string deskNum = (i < 10) ? "0" + std::to_string(i) : std::to_string(i);
+                    std::string deskName = "D-" + deskNum;
+                    db->exec("INSERT INTO desks (name, building_id, floor) VALUES ('" +
+                             deskName + "', " + std::to_string(buildingD) + ", 1);");
+                }
             }
 
             // Add users with simple password hashing
             std::string passwordHash = std::to_string(std::hash<std::string>{}("password"));
-            db->exec("INSERT INTO users (username, password_hash, email, full_name) VALUES "
-                     "('admin', '" + passwordHash + "', 'admin@example.com', 'Admin User'),"
-                     "('user1', '" + passwordHash + "', 'user1@example.com', 'Regular User'),"
-                     "('user2', '" + passwordHash + "', 'user2@example.com', 'Another User');");
+            db->exec("INSERT INTO users (username, password_hash, email) VALUES "
+                     "('admin', '" + passwordHash + "', 'admin@example.com'),"
+                     "('jan.kowalski', '" + passwordHash + "', 'jan.kowalski@example.com'),"
+                     "('anna.nowak', '" + passwordHash + "', 'anna.nowak@example.com'),"
+                     "('user1', '" + passwordHash + "', 'user1@example.com');");
 
             db->exec("COMMIT;");
         }
@@ -133,13 +192,12 @@ int main(int argc, char *argv[]) {
         // Initialize controllers
         BookingController bookingController(bookingService);
         UserController userController(userService);
-        AdminController adminController(bookingService);
 
         // Initialize Crow server
         crow::SimpleApp app;
 
         // Register API routes
-        registerRoutes(app, bookingController, userController, adminController);
+        registerRoutes(app, bookingController, userController);
 
         // Start server
         LOG_INFO("Server listening on port {}", settings.getPort());
@@ -149,5 +207,5 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    return 0;
+    return 0; // Add a return statement for the success case
 }

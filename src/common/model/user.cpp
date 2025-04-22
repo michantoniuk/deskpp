@@ -1,15 +1,14 @@
 #include "user.h"
 
-User::User(int id, const std::string &username, const std::string &email, const std::string &fullName)
-    : Entity(id), _username(username), _email(email), _fullName(fullName) {
+User::User(int id, const std::string &username, const std::string &email)
+    : Entity(id), _username(username), _email(email) {
 }
 
 json User::toJson() const {
     return {
         {"id", getId()},
         {"username", _username},
-        {"email", _email},
-        {"fullName", _fullName}
+        {"email", _email}
     };
 }
 

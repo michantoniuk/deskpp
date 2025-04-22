@@ -13,8 +13,6 @@ public:
 
     std::vector<Booking> findByUserId(int userId);
 
-    std::vector<Booking> findByDate(const std::string &date);
-
     std::vector<Booking> findByDateRange(int deskId, const std::string &dateFrom, const std::string &dateTo);
 
     bool hasOverlappingBooking(int deskId, const std::string &dateFrom, const std::string &dateTo);

@@ -3,6 +3,8 @@
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QEventLoop>
+#include <QMessageBox>
+
 #include "common/logger.h"
 
 ApiClient::ApiClient(QObject *parent)
@@ -19,11 +21,13 @@ json ApiClient::executeRequest(const QString &method, const QString &endpoint, c
     QUrl url(_serverUrl + endpoint);
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    LOG_INFO("Request: {} {}", method.toStdString(), endpoint.toStdString());
+
+    LOG_INFO("API Request: {} {}", method.toStdString(), url.toString().toStdString());
 
     QByteArray requestData;
     if (!data.empty()) {
         requestData = QByteArray::fromStdString(data.dump());
+        LOG_INFO("Request data: {}", requestData.toStdString());
     }
 
     QNetworkReply *reply = nullptr;
@@ -42,17 +46,22 @@ json ApiClient::executeRequest(const QString &method, const QString &endpoint, c
     loop.exec();
 
     if (reply->error() != QNetworkReply::NoError) {
-        LOG_ERROR("Network error: {}", reply->errorString().toStdString());
+        QString errorMsg = reply->errorString();
+        int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        LOG_ERROR("Network error {}: {}", statusCode, errorMsg.toStdString());
+        // Don't emit the signal here to avoid multiple error messages
+        // emit networkError(errorMsg);
         reply->deleteLater();
-        return {{"status", "error"}, {"message", reply->errorString().toStdString()}};
+        return {{"status", "error"}, {"message", errorMsg.toStdString()}};
     }
 
     QByteArray responseData = reply->readAll();
-    int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     reply->deleteLater();
-    LOG_INFO("Response: status={}", statusCode);
+
+    LOG_INFO("Response received: {}", responseData.toStdString());
 
     if (responseData.isEmpty()) {
+        LOG_ERROR("Empty response");
         return {{"status", "error"}, {"message", "Empty response"}};
     }
 
@@ -64,18 +73,36 @@ json ApiClient::executeRequest(const QString &method, const QString &endpoint, c
     }
 }
 
-bool ApiClient::checkAuthentication(const std::string &action) {
-    if (!isLoggedIn()) {
-        LOG_WARNING("Authentication required for: {}", action);
-        return false;
+std::vector<Building> ApiClient::getBuildings() {
+    json response = executeRequest("GET", "/api/buildings");
+    std::vector<Building> buildings;
+
+    if (response.contains("buildings") && response["buildings"].is_array()) {
+        for (const auto &buildingJson: response["buildings"]) {
+            int id = buildingJson.contains("id") ? buildingJson["id"].get<int>() : 0;
+            std::string name = buildingJson.contains("name") ? buildingJson["name"].get<std::string>() : "Building";
+            std::string address = buildingJson.contains("address") ? buildingJson["address"].get<std::string>() : "";
+            int numFloors = buildingJson.contains("numFloors") ? buildingJson["numFloors"].get<int>() : 1;
+
+            LOG_INFO("Building {} ({}) has {} floors", id, name, numFloors);
+            Building building(id, name, address, numFloors);
+            buildings.push_back(building);
+        }
     }
-    return true;
+
+    emit requestCompleted();
+    return buildings;
 }
 
-std::vector<Desk> ApiClient::getDesks(int buildingId) {
+std::vector<Desk> ApiClient::getDesks(int buildingId, int floor) {
     QString endpoint = "/api/desks";
+
     if (buildingId > 0) {
         endpoint += "?buildingId=" + QString::number(buildingId);
+
+        if (floor > 0) {
+            endpoint += "&floor=" + QString::number(floor);
+        }
     }
 
     json response = executeRequest("GET", endpoint);
@@ -84,21 +111,11 @@ std::vector<Desk> ApiClient::getDesks(int buildingId) {
     if (response.contains("desks") && response["desks"].is_array()) {
         for (const auto &deskJson: response["desks"]) {
             int id = deskJson.contains("id") ? deskJson["id"].get<int>() : 0;
-            std::string deskId = deskJson.contains("deskId") ? deskJson["deskId"].get<std::string>() : "Desk";
-            std::string buildingId = "1";
+            std::string name = deskJson.contains("name") ? deskJson["name"].get<std::string>() : "Desk";
+            int buildingId = deskJson.contains("buildingId") ? deskJson["buildingId"].get<int>() : 1;
+            int floor = deskJson.contains("floor") ? deskJson["floor"].get<int>() : 1;
 
-            if (deskJson.contains("buildingId")) {
-                if (deskJson["buildingId"].is_string())
-                    buildingId = deskJson["buildingId"].get<std::string>();
-                else if (deskJson["buildingId"].is_number())
-                    buildingId = std::to_string(deskJson["buildingId"].get<int>());
-            }
-
-            int floorNumber = deskJson.contains("floorNumber") ? deskJson["floorNumber"].get<int>() : 1;
-            int locationX = deskJson.contains("locationX") ? deskJson["locationX"].get<int>() : 0;
-            int locationY = deskJson.contains("locationY") ? deskJson["locationY"].get<int>() : 0;
-
-            Desk desk(id, deskId, buildingId, floorNumber, locationX, locationY);
+            Desk desk(id, name, buildingId, floor);
 
             if (deskJson.contains("bookings") && deskJson["bookings"].is_array()) {
                 for (const auto &bookingJson: deskJson["bookings"]) {
@@ -110,35 +127,61 @@ std::vector<Desk> ApiClient::getDesks(int buildingId) {
         }
     }
 
+    emit requestCompleted();
     return desks;
 }
 
-bool ApiClient::addBooking(int deskId, int userId, const std::string &dateFrom, const std::string &dateTo) {
-    if (!checkAuthentication("book a desk")) return false;
+std::pair<bool, QString> ApiClient::addBooking(int deskId, int userId, const std::string &dateFrom,
+                                               const std::string &dateTo) {
+    if (!isLoggedIn()) {
+        LOG_ERROR("Attempted to book desk when not logged in");
+        return {false, "You must be logged in to book a desk"};
+    }
+
     json data = {
         {"deskId", deskId},
         {"userId", userId},
         {"dateFrom", dateFrom},
         {"dateTo", dateTo}
     };
+
+    LOG_INFO("Sending booking request: {}", data.dump());
     json response = executeRequest("POST", "/api/bookings", data);
-    return response.contains("status") && response["status"] == "success";
+
+    bool success = response.contains("status") && response["status"] == "success";
+
+    if (!success) {
+        QString errorMsg = "Could not book the desk.";
+
+        if (response.contains("message")) {
+            std::string serverMsg = response["message"].get<std::string>();
+            LOG_ERROR("Booking error: {}", serverMsg);
+
+            if (serverMsg.find("already booked") != std::string::npos) {
+                errorMsg = "This desk is already booked for the selected date(s).";
+            }
+        }
+
+        return {false, errorMsg};
+    }
+
+    return {true, ""};
 }
 
 bool ApiClient::cancelBooking(int bookingId) {
-    if (!checkAuthentication("cancel a booking")) return false;
+    if (!isLoggedIn()) return false;
+
     QString endpoint = "/api/bookings/" + QString::number(bookingId);
     json response = executeRequest("DELETE", endpoint);
     return response.contains("status") && response["status"] == "success";
 }
 
 std::optional<User> ApiClient::registerUser(const std::string &username, const std::string &password,
-                                            const std::string &email, const std::string &fullName) {
+                                            const std::string &email) {
     json data = {
         {"username", username},
         {"password", password},
-        {"email", email},
-        {"fullName", fullName}
+        {"email", email}
     };
 
     json response = executeRequest("POST", "/api/users/register", data);
@@ -149,11 +192,9 @@ std::optional<User> ApiClient::registerUser(const std::string &username, const s
         int id = userJson.contains("id") ? userJson["id"].get<int>() : 0;
         std::string username = userJson.contains("username") ? userJson["username"].get<std::string>() : "";
         std::string email = userJson.contains("email") ? userJson["email"].get<std::string>() : "";
-        std::string fullName = userJson.contains("fullName") ? userJson["fullName"].get<std::string>() : "";
 
-        User user(id, username, email, fullName);
+        User user(id, username, email);
         _currentUser = user;
-        LOG_INFO("User registered: {}", username);
         return user;
     }
 
@@ -185,79 +226,13 @@ std::optional<User> ApiClient::loginUser(const std::string &username, const std:
             }
         }
 
-        LOG_INFO("User login successful. User ID: {}", id);
-
         std::string username = userJson.contains("username") ? userJson["username"].get<std::string>() : "";
         std::string email = userJson.contains("email") ? userJson["email"].get<std::string>() : "";
-        std::string fullName = userJson.contains("fullName") ? userJson["fullName"].get<std::string>() : "";
 
-        User user(id, username, email, fullName);
+        User user(id, username, email);
         _currentUser = user;
         return user;
     }
 
     return std::nullopt;
-}
-
-bool ApiClient::addBuilding(const std::string &name, const std::string &address) {
-    if (!checkAuthentication("manage buildings")) return false;
-    json data = {
-        {"name", name},
-        {"address", address}
-    };
-    json response = executeRequest("POST", "/api/admin/buildings", data);
-    return response.contains("status") && response["status"] == "success";
-}
-
-bool ApiClient::updateBuilding(int id, const std::string &name, const std::string &address) {
-    if (!checkAuthentication("manage buildings")) return false;
-    json data = {
-        {"name", name},
-        {"address", address}
-    };
-    QString endpoint = "/api/admin/buildings/" + QString::number(id);
-    json response = executeRequest("PUT", endpoint, data);
-    return response.contains("status") && response["status"] == "success";
-}
-
-bool ApiClient::deleteBuilding(int id) {
-    if (!checkAuthentication("manage buildings")) return false;
-    QString endpoint = "/api/admin/buildings/" + QString::number(id);
-    json response = executeRequest("DELETE", endpoint);
-    return response.contains("status") && response["status"] == "success";
-}
-
-bool ApiClient::addDesk(const std::string &deskId, int buildingId, int floorNumber, int locationX, int locationY) {
-    if (!checkAuthentication("manage desks")) return false;
-    json data = {
-        {"deskId", deskId},
-        {"buildingId", buildingId},
-        {"floorNumber", floorNumber},
-        {"locationX", locationX},
-        {"locationY", locationY}
-    };
-    json response = executeRequest("POST", "/api/admin/desks", data);
-    return response.contains("status") && response["status"] == "success";
-}
-
-bool ApiClient::updateDesk(int id, const std::string &deskId, int buildingId, int floorNumber, int locationX,
-                           int locationY) {
-    if (!checkAuthentication("manage desks")) return false;
-    json data = {
-        {"deskId", deskId},
-        {"buildingId", buildingId},
-        {"floorNumber", floorNumber},
-        {"locationX", locationX},
-        {"locationY", locationY}
-    };
-    QString endpoint = "/api/admin/desks/" + QString::number(id);
-    json response = executeRequest("PUT", endpoint, data);
-    return response.contains("status") && response["status"] == "success";
-}
-
-bool ApiClient::deleteDesk(int id) {
-    if (!checkAuthentication("manage desks")) return false;
-    QString endpoint = "/api/admin/desks/" + QString::number(id);
-    json response = executeRequest("DELETE", endpoint);
-    return response.contains("status") && response["status"] == "success";
 }

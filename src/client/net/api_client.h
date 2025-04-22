@@ -17,19 +17,19 @@ public:
     // Network operations
     json executeRequest(const QString &method, const QString &endpoint, const json &data = json::object());
 
-    bool checkAuthentication(const std::string &action);
-
     // Data operations
-    std::vector<Desk> getDesks(int buildingId = 1);
+    std::vector<Building> getBuildings();
+
+    std::vector<Desk> getDesks(int buildingId = -1, int floor = -1);
 
     // Booking operations
-    bool addBooking(int deskId, int userId, const std::string &dateFrom, const std::string &dateTo);
+    std::pair<bool, QString> addBooking(int deskId, int userId, const std::string &dateFrom, const std::string &dateTo);
 
     bool cancelBooking(int bookingId);
 
     // User operations
     std::optional<User> registerUser(const std::string &username, const std::string &password,
-                                     const std::string &email, const std::string &fullName);
+                                     const std::string &email);
 
     std::optional<User> loginUser(const std::string &username, const std::string &password);
 
@@ -38,30 +38,15 @@ public:
     void logoutUser() { _currentUser = std::nullopt; }
     bool isLoggedIn() const { return _currentUser.has_value(); }
 
-    // Admin operations
-    bool isAdmin() const { return _isAdmin; }
-    void setAdminMode(bool isAdmin) { _isAdmin = isAdmin; }
+signals:
+    void requestCompleted();
 
-    // Building management
-    bool addBuilding(const std::string &name, const std::string &address);
-
-    bool updateBuilding(int id, const std::string &name, const std::string &address);
-
-    bool deleteBuilding(int id);
-
-    // Desk management
-    bool addDesk(const std::string &deskId, int buildingId, int floorNumber, int locationX = 0, int locationY = 0);
-
-    bool updateDesk(int id, const std::string &deskId, int buildingId, int floorNumber, int locationX = 0,
-                    int locationY = 0);
-
-    bool deleteDesk(int id);
+    void networkError(const QString &error);
 
 private:
     QString _serverUrl;
     QNetworkAccessManager _networkManager;
     std::optional<User> _currentUser;
-    bool _isAdmin = false;
 };
 
 #endif

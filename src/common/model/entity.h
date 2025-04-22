@@ -27,4 +27,4 @@ protected:
     int _id;
 };
 
-#endif // ENTITY_H
+#endif

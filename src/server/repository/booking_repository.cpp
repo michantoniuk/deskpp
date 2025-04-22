@@ -53,18 +53,6 @@ std::vector<Booking> BookingRepository::findByUserId(int userId) {
     return bookings;
 }
 
-std::vector<Booking> BookingRepository::findByDate(const std::string &date) {
-    std::vector<Booking> bookings;
-    SQLite::Statement query(*_db, "SELECT id, desk_id, user_id, date, date_to "
-                            "FROM bookings WHERE ? BETWEEN date AND date_to ORDER BY date");
-    query.bind(1, date);
-
-    while (query.executeStep()) {
-        bookings.push_back(bookingFromRow(query));
-    }
-    return bookings;
-}
-
 std::vector<Booking> BookingRepository::findByDateRange(int deskId, const std::string &dateFrom,
                                                         const std::string &dateTo) {
     std::vector<Booking> bookings;

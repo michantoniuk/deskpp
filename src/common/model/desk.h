@@ -9,8 +9,7 @@ class Desk : public Entity {
 public:
     Desk() = default;
 
-    Desk(int id, const std::string &deskId, const std::string &buildingId, int floorNumber,
-         int locationX = 0, int locationY = 0);
+    Desk(int id, const std::string &name, int buildingId, int floor = 1);
 
     json toJson() const override;
 
@@ -42,25 +41,21 @@ public:
     void cancelAllBookings() { _bookings.clear(); }
 
     // Getters/setters
-    const std::string &getDeskId() const { return _deskId; }
-    const std::string &getBuildingId() const { return _buildingId; }
-    int getFloorNumber() const { return _floorNumber; }
-    int getLocationX() const { return _locationX; }
-    int getLocationY() const { return _locationY; }
-
-    void setDeskId(const std::string &deskId) { _deskId = deskId; }
-    void setBuildingId(const std::string &buildingId) { _buildingId = buildingId; }
-    void setFloorNumber(int floorNumber) { _floorNumber = floorNumber; }
-    void setLocationX(int x) { _locationX = x; }
-    void setLocationY(int y) { _locationY = y; }
+    const std::string &getName() const { return _name; }
+    int getBuildingId() const { return _buildingId; }
+    int getFloor() const { return _floor; }
+    void setName(const std::string &name) { _name = name; }
+    void setBuildingId(int buildingId) { _buildingId = buildingId; }
+    void setFloor(int floor) { _floor = floor; }
 
     // Legacy compatibility
     bool isBooked() const { return !isAvailable(); }
     bool isBookedOnDate(const QDate &date) const { return !isAvailableOn(date); }
 
 private:
-    std::string _deskId, _buildingId;
-    int _floorNumber = 0, _locationX = 0, _locationY = 0;
+    std::string _name;
+    int _buildingId;
+    int _floor;
     std::vector<Booking> _bookings;
 
     void sortBookings();

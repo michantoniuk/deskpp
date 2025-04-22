@@ -7,6 +7,8 @@
 #include <QLabel>
 #include <QGridLayout>
 #include <QDate>
+#include <QPushButton>
+
 #include "common/model/model.h"
 #include "../net/api_client.h"
 
@@ -17,8 +19,6 @@ public:
     explicit BookingView(QWidget *parent = nullptr);
 
     BookingView(QWidget *parent, ApiClient &apiClient);
-
-    void updateLoginStatus();
 
     void refreshView();
 
@@ -31,11 +31,9 @@ private slots:
 
     void showLoginDialog();
 
-    void handleUserLogin();
-
     void handleUserLogout();
 
-    void showAdminDialog();
+    void handleNetworkError(const QString &error);
 
 private:
     void setupUi();
@@ -44,21 +42,33 @@ private:
 
     void updateDeskMap();
 
+    void loadBuildings();
+
+    bool checkLogin(const QString &action = QString());
+
     // UI components
     QCalendarWidget *calendar;
     QComboBox *buildingSelect;
+    QComboBox *floorSelect;
     QLabel *infoLabel;
     QLabel *userLabel;
+    QPushButton *refreshButton;
     QGridLayout *deskMapLayout;
     QWidget *deskMapContainer;
 
     // Data
     ApiClient &apiClient;
+    std::vector<Building> buildings;
     std::vector<Desk> desks;
 
     // State
-    int selectedBuildingId = 1;
+    int selectedBuildingId = -1;
+    int selectedFloor = -1;
     QDate selectedDate;
+
+    void loadFloors(int buildingId);
+
+    void floorChanged(int index);
 };
 
 #endif

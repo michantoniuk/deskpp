@@ -8,17 +8,9 @@ class UserController : public Controller {
 public:
     explicit UserController(UserService &userService);
 
-    crow::response getUsers(const crow::request &req);
-
-    crow::response getUser(int id);
-
     crow::response registerUser(const crow::request &req);
 
     crow::response loginUser(const crow::request &req);
-
-    crow::response updateUser(int id, const crow::request &req);
-
-    crow::response deleteUser(int id);
 
 private:
     UserService &_userService;
