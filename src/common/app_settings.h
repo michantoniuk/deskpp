@@ -6,22 +6,36 @@
 #include <QCommandLineParser>
 #include "logger.h"
 
+/**
+ * @class AppSettings
+ * @brief Klasa zarządzająca ustawieniami aplikacji.
+ *
+ * Implementuje wzorzec Singleton i zapewnia dostęp do ustawień aplikacji.
+ * Obsługuje parametry linii poleceń i stałe konfiguracyjne.
+ */
 class AppSettings {
 public:
+    /**
+     * @brief Pobiera instancję klasy (implementacja wzorca Singleton)
+     * @return Referencja do jednej instancji klasy
+     */
     static AppSettings &getInstance() {
         static AppSettings instance;
         return instance;
     }
 
-    // Client settings init
+    /**
+     * @brief Parsuje argumenty linii poleceń dla klienta
+     * @param app Referencja do obiektu aplikacji Qt
+     */
     void parseCommandLine(const QCoreApplication &app) {
         QCommandLineParser parser;
         parser.setApplicationDescription("DeskPP Client");
         parser.addHelpOption();
 
-        QCommandLineOption serverOption(QStringList() << "s" << "server", "Server address", "address", "localhost");
-        QCommandLineOption portOption(QStringList() << "p" << "port", "Server port", "port", "8080");
-        QCommandLineOption verboseOption(QStringList() << "v" << "verbose", "Enable verbose logging");
+        QCommandLineOption serverOption(QStringList() << "s" << "server", "Adres serwera", "address", "localhost");
+        QCommandLineOption portOption(QStringList() << "p" << "port", "Port serwera", "port", "8080");
+        QCommandLineOption verboseOption(QStringList() << "v" << "verbose", "Włącz szczegółowe logowanie");
 
         parser.addOption(serverOption);
         parser.addOption(portOption);
@@ -33,10 +47,13 @@ public:
         if (parser.isSet(verboseOption)) _settings.setValue("logging/verbose", true);
 
         _initialized = true;
-        LOG_INFO("Settings initialized");
     }
 
-    // Server settings init
+    /**
+     * @brief Parsuje argumenty linii poleceń dla serwera
+     * @param argc Liczba argumentów
+     * @param argv Tablica argumentów
+     */
     void parseCommandLine(int argc, char *argv[]) {
         for (int i = 1; i < argc; i++) {
             if ((strcmp(argv[i], "--port") == 0 || strcmp(argv[i], "-p") == 0) && i + 1 < argc) {
@@ -52,15 +69,42 @@ public:
         _initialized = true;
     }
 
-    // Getters
+    /**
+     * @brief Pobiera adres serwera
+     * @return Adres serwera
+     */
     std::string getServerAddress() const {
         return _settings.value("server/address", "localhost").toString().toStdString();
     }
 
+    /**
+     * @brief Pobiera port serwera (konfiguracja klienta)
+     * @return Port serwera
+     */
     int getServerPort() const { return _settings.value("server/port", 8080).toInt(); }
+
+    /**
+     * @brief Pobiera port serwera (konfiguracja serwera)
+     * @return Port serwera
+     */
     int getPort() const { return _port; }
+
+    /**
+     * @brief Pobiera ścieżkę do pliku bazy danych
+     * @return Ścieżka do pliku bazy danych
+     */
     std::string getDatabasePath() const { return _dbPath; }
+
+    /**
+     * @brief Sprawdza czy włączone jest szczegółowe logowanie
+     * @return Czy włączone jest szczegółowe logowanie
+     */
     bool isVerboseLogging() const { return _settings.value("logging/verbose", false).toBool() || _verbose; }
+
+    /**
+     * @brief Sprawdza czy ustawienia zostały zainicjalizowane
+     * @return Czy ustawienia zostały zainicjalizowane
+     */
     bool isInitialized() const { return _initialized; }
 
 private:

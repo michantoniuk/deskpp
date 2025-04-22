@@ -4,6 +4,11 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
+/**
+ * @brief Inicjalizuje logger
+ * @param appName Nazwa aplikacji
+ * @param verbose Czy włączyć szczegółowe logowanie
+ */
 inline void initLogger(const std::string &appName, bool verbose = false) {
     auto console = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     auto logger = std::make_shared<spdlog::logger>(appName, console);

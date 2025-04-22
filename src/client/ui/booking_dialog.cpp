@@ -3,33 +3,32 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QMessageBox>
-
 #include "common/logger.h"
 
 BookingDialog::BookingDialog(Desk &desk, const QDate &date, ApiClient &apiClient, QWidget *parent)
     : QDialog(parent), desk(desk), bookingDate(date), apiClient(apiClient), bookingId(0) {
-    setWindowTitle("Desk Booking");
+    setWindowTitle("Rezerwacja biurka");
     setMinimumWidth(300);
 
     auto layout = new QVBoxLayout(this);
 
-    // Desk info with floor
-    layout->addWidget(new QLabel(QString("Desk: %1 (Floor %2)")
+    // Informacje o biurku
+    layout->addWidget(new QLabel(QString("Biurko: %1 (Piętro %2)")
         .arg(QString::fromStdString(desk.getName()))
         .arg(desk.getFloor())));
 
-    // Determine if desk is booked
+    // Sprawdź czy biurko jest zarezerwowane
     isBooked = desk.isBookedOnDate(date);
 
-    // Get current user ID
+    // Pobierz ID aktualnego użytkownika
     int currentUserId = apiClient.getCurrentUser() ? apiClient.getCurrentUser()->getId() : -1;
     bool isOwnBooking = false;
 
-    // Create booking info section
-    auto bookingInfoGroup = new QGroupBox("Booking Information", this);
+    // Sekcja z informacjami o rezerwacji
+    auto bookingInfoGroup = new QGroupBox("Informacje o rezerwacji", this);
     auto bookingInfoLayout = new QVBoxLayout(bookingInfoGroup);
 
-    // Find booking details if booked
+    // Jeśli biurko jest zarezerwowane, wyświetl szczegóły
     if (isBooked) {
         auto bookings = desk.getBookingsContainingDate(date);
         if (!bookings.empty()) {
@@ -38,45 +37,46 @@ BookingDialog::BookingDialog(Desk &desk, const QDate &date, ApiClient &apiClient
             int bookingUserId = booking.getUserId();
             isOwnBooking = (currentUserId == bookingUserId);
 
-            // Show booking period
+            // Pokaż okres rezerwacji
             QString bookedFrom = QDate::fromString(
                 QString::fromStdString(booking.getDateFromString()),
-                "yyyy-MM-dd").toString("MM/dd/yyyy");
+                "yyyy-MM-dd").toString("dd.MM.yyyy");
             QString bookedTo = QDate::fromString(
                 QString::fromStdString(booking.getDateToString()),
-                "yyyy-MM-dd").toString("MM/dd/yyyy");
+                "yyyy-MM-dd").toString("dd.MM.yyyy");
 
-            bookingInfoLayout->addWidget(new QLabel(QString("Status: Booked")));
+            bookingInfoLayout->addWidget(new QLabel(QString("Status: Zarezerwowane")));
 
-            // Show if booking is by current user
+            // Pokaż czy rezerwacja należy do zalogowanego użytkownika
             if (isOwnBooking) {
-                bookingInfoLayout->addWidget(new QLabel("Booked by: You"));
+                bookingInfoLayout->addWidget(new QLabel("Zarezerwowane przez: Ciebie"));
             } else {
-                bookingInfoLayout->addWidget(new QLabel(QString("Booked by: User #%1").arg(bookingUserId)));
+                bookingInfoLayout->addWidget(
+                    new QLabel(QString("Zarezerwowane przez: Użytkownik #%1").arg(bookingUserId)));
             }
 
-            bookingInfoLayout->addWidget(new QLabel(QString("From: %1").arg(bookedFrom)));
-            bookingInfoLayout->addWidget(new QLabel(QString("To: %1").arg(bookedTo)));
+            bookingInfoLayout->addWidget(new QLabel(QString("Od: %1").arg(bookedFrom)));
+            bookingInfoLayout->addWidget(new QLabel(QString("Do: %1").arg(bookedTo)));
         }
     } else {
-        bookingInfoLayout->addWidget(new QLabel("Status: Available"));
+        bookingInfoLayout->addWidget(new QLabel("Status: Dostępne"));
     }
 
     layout->addWidget(bookingInfoGroup);
 
-    // Date range for new booking (only shown when desk is available)
-    auto dateGroup = new QGroupBox("New Booking", this);
+    // Zakres dat dla nowej rezerwacji (tylko gdy biurko jest dostępne)
+    auto dateGroup = new QGroupBox("Nowa rezerwacja", this);
     auto dateLayout = new QVBoxLayout(dateGroup);
 
     auto dateRangeLayout = new QHBoxLayout();
 
-    dateRangeLayout->addWidget(new QLabel("From:"));
+    dateRangeLayout->addWidget(new QLabel("Od:"));
     dateFromEdit = new QDateEdit(date, this);
     dateFromEdit->setCalendarPopup(true);
     dateFromEdit->setMinimumDate(QDate::currentDate());
     dateRangeLayout->addWidget(dateFromEdit);
 
-    dateRangeLayout->addWidget(new QLabel("To:"));
+    dateRangeLayout->addWidget(new QLabel("Do:"));
     dateToEdit = new QDateEdit(date, this);
     dateToEdit->setCalendarPopup(true);
     dateToEdit->setMinimumDate(date);
@@ -84,32 +84,32 @@ BookingDialog::BookingDialog(Desk &desk, const QDate &date, ApiClient &apiClient
 
     dateLayout->addLayout(dateRangeLayout);
 
-    // Add note about availability
-    QLabel *noteLabel = new QLabel("Select the date range for your new booking.");
+    // Dodaj informację o dostępności
+    QLabel *noteLabel = new QLabel("Wybierz zakres dat dla nowej rezerwacji.");
     noteLabel->setWordWrap(true);
     dateLayout->addWidget(noteLabel);
 
     layout->addWidget(dateGroup);
 
-    // Only show booking controls for available desks
+    // Pokaż opcje rezerwacji tylko dla dostępnych biurek
     dateGroup->setVisible(!isBooked);
 
-    // Buttons
+    // Przyciski
     auto buttonLayout = new QHBoxLayout();
 
-    bookButton = new QPushButton("Book", this);
+    bookButton = new QPushButton("Zarezerwuj", this);
     connect(bookButton, &QPushButton::clicked, this, &BookingDialog::bookDesk);
     buttonLayout->addWidget(bookButton);
     bookButton->setVisible(!isBooked);
 
-    cancelButton = new QPushButton("Cancel Booking", this);
+    cancelButton = new QPushButton("Anuluj rezerwację", this);
     connect(cancelButton, &QPushButton::clicked, this, &BookingDialog::cancelBooking);
     buttonLayout->addWidget(cancelButton);
 
-    // Only enable cancel button if this is the user's own booking
+    // Przycisk anulowania rezerwacji tylko dla własnych rezerwacji
     cancelButton->setVisible(isBooked && isOwnBooking);
 
-    auto closeButton = new QPushButton("Close", this);
+    auto closeButton = new QPushButton("Zamknij", this);
     connect(closeButton, &QPushButton::clicked, this, &QDialog::reject);
     buttonLayout->addWidget(closeButton);
 
@@ -120,36 +120,32 @@ void BookingDialog::bookDesk() {
     QDate dateFrom = dateFromEdit->date();
     QDate dateTo = dateToEdit->date();
 
-    // Validate dates
+    // Walidacja dat
     if (dateFrom > dateTo) {
-        QMessageBox::warning(this, "Invalid Dates", "End date must be after or equal to start date");
+        QMessageBox::warning(this, "Nieprawidłowe daty",
+                             "Data końcowa musi być późniejsza lub równa dacie początkowej");
         return;
     }
 
     std::string dateFromStr = dateFrom.toString("yyyy-MM-dd").toStdString();
     std::string dateToStr = dateTo.toString("yyyy-MM-dd").toStdString();
 
-    // Get the current user's ID
+    // Pobierz ID aktualnego użytkownika
     if (!apiClient.isLoggedIn() || !apiClient.getCurrentUser()) {
-        QMessageBox::warning(this, "Error", "You must be logged in to book a desk");
+        QMessageBox::warning(this, "Błąd", "Musisz być zalogowany, aby zarezerwować biurko");
         return;
     }
 
     int userId = apiClient.getCurrentUser()->getId();
     int deskId = desk.getId();
 
-    LOG_INFO("Booking desk {} for user {} from {} to {}",
-             deskId, userId, dateFromStr, dateToStr);
-
-    // Make the API call with error handling
+    // Wywołaj API i obsłuż błędy
     auto [success, errorMsg] = apiClient.addBooking(deskId, userId, dateFromStr, dateToStr);
 
     if (success) {
-        LOG_INFO("Booking successful");
         accept();
     } else {
-        LOG_ERROR("Booking failed: {}", errorMsg.toStdString());
-        QMessageBox::warning(this, "Booking Error", errorMsg);
+        QMessageBox::warning(this, "Błąd rezerwacji", errorMsg);
     }
 }
 
@@ -158,6 +154,6 @@ void BookingDialog::cancelBooking() {
         desk.cancelBooking(bookingId);
         accept();
     } else {
-        QMessageBox::warning(this, "Error", "Could not cancel the booking");
+        QMessageBox::warning(this, "Błąd", "Nie można anulować rezerwacji");
     }
 }

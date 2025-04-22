@@ -2,19 +2,19 @@
 
 void registerRoutes(crow::SimpleApp &app, BookingController &bookingController,
                     UserController &userController) {
-    // Buildings endpoint
+    // Endpoint budynków
     CROW_ROUTE(app, "/api/buildings").methods(crow::HTTPMethod::GET)
     ([&bookingController](const crow::request &req) {
         return bookingController.getBuildings(req);
     });
 
-    // Desks endpoint
+    // Endpoint biurek
     CROW_ROUTE(app, "/api/desks").methods(crow::HTTPMethod::GET)
     ([&bookingController](const crow::request &req) {
         return bookingController.getDesks(req);
     });
 
-    // Bookings endpoints
+    // Endpointy rezerwacji
     CROW_ROUTE(app, "/api/bookings").methods(crow::HTTPMethod::GET)
     ([&bookingController](const crow::request &req) {
         return bookingController.getBookings(req);
@@ -30,7 +30,7 @@ void registerRoutes(crow::SimpleApp &app, BookingController &bookingController,
         return bookingController.cancelBooking(bookingId);
     });
 
-    // User endpoints
+    // Endpointy użytkowników
     CROW_ROUTE(app, "/api/users/register").methods(crow::HTTPMethod::POST)
     ([&userController](const crow::request &req) {
         return userController.registerUser(req);

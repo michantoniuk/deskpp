@@ -5,12 +5,12 @@
 
 LoginDialog::LoginDialog(ApiClient &apiClient, QWidget *parent)
     : QDialog(parent), apiClient(apiClient) {
-    setWindowTitle("DeskPP - Login");
+    setWindowTitle("DeskPP - Logowanie");
     setMinimumWidth(300);
 
     stack = new QStackedWidget(this);
 
-    // Login page
+    // Strona logowania
     auto loginPage = new QWidget();
     auto loginLayout = new QVBoxLayout(loginPage);
 
@@ -19,23 +19,24 @@ LoginDialog::LoginDialog(ApiClient &apiClient, QWidget *parent)
     passwordEdit = new QLineEdit();
     passwordEdit->setEchoMode(QLineEdit::Password);
 
-    loginForm->addRow("Username:", usernameEdit);
-    loginForm->addRow("Password:", passwordEdit);
+    loginForm->addRow("Nazwa użytkownika:", usernameEdit);
+    loginForm->addRow("Hasło:", passwordEdit);
     loginLayout->addLayout(loginForm);
 
     auto loginBtnLayout = new QHBoxLayout();
 
-    auto loginBtn = new QPushButton("Login", this);
+    auto loginBtn = new QPushButton("Zaloguj", this);
+    loginBtn->setDefault(true);
     connect(loginBtn, &QPushButton::clicked, this, &LoginDialog::login);
     loginBtnLayout->addWidget(loginBtn);
 
-    auto registerBtn = new QPushButton("Create Account", this);
+    auto registerBtn = new QPushButton("Utwórz konto", this);
     connect(registerBtn, &QPushButton::clicked, this, &LoginDialog::switchToRegister);
     loginBtnLayout->addWidget(registerBtn);
 
     loginLayout->addLayout(loginBtnLayout);
 
-    // Register page
+    // Strona rejestracji
     auto registerPage = new QWidget();
     auto registerLayout = new QVBoxLayout(registerPage);
 
@@ -45,28 +46,28 @@ LoginDialog::LoginDialog(ApiClient &apiClient, QWidget *parent)
     regPasswordEdit->setEchoMode(QLineEdit::Password);
     regEmailEdit = new QLineEdit();
 
-    registerForm->addRow("Username:", regUsernameEdit);
-    registerForm->addRow("Password:", regPasswordEdit);
+    registerForm->addRow("Nazwa użytkownika:", regUsernameEdit);
+    registerForm->addRow("Hasło:", regPasswordEdit);
     registerForm->addRow("Email:", regEmailEdit);
     registerLayout->addLayout(registerForm);
 
     auto regBtnLayout = new QHBoxLayout();
 
-    auto createBtn = new QPushButton("Create Account", this);
+    auto createBtn = new QPushButton("Utwórz konto", this);
     connect(createBtn, &QPushButton::clicked, this, &LoginDialog::registerUser);
     regBtnLayout->addWidget(createBtn);
 
-    auto backBtn = new QPushButton("Back to Login", this);
+    auto backBtn = new QPushButton("Powrót do logowania", this);
     connect(backBtn, &QPushButton::clicked, this, &LoginDialog::switchToLogin);
     regBtnLayout->addWidget(backBtn);
 
     registerLayout->addLayout(regBtnLayout);
 
-    // Add pages to stack
+    // Dodaj strony do stosu
     stack->addWidget(loginPage);
     stack->addWidget(registerPage);
 
-    // Main layout
+    // Główny układ
     auto mainLayout = new QVBoxLayout(this);
     mainLayout->addWidget(stack);
 }
@@ -76,7 +77,7 @@ void LoginDialog::login() {
     QString password = passwordEdit->text();
 
     if (username.isEmpty() || password.isEmpty()) {
-        QMessageBox::warning(this, "Error", "Please enter username and password");
+        QMessageBox::warning(this, "Błąd", "Wprowadź nazwę użytkownika i hasło");
         return;
     }
 
@@ -85,7 +86,7 @@ void LoginDialog::login() {
     if (user) {
         accept();
     } else {
-        QMessageBox::warning(this, "Error", "Login failed. Please check your credentials.");
+        QMessageBox::warning(this, "Błąd", "Logowanie nie powiodło się. Sprawdź dane logowania.");
     }
 }
 
@@ -95,7 +96,7 @@ void LoginDialog::registerUser() {
     QString email = regEmailEdit->text();
 
     if (username.isEmpty() || password.isEmpty() || email.isEmpty()) {
-        QMessageBox::warning(this, "Error", "All fields are required");
+        QMessageBox::warning(this, "Błąd", "Wszystkie pola są wymagane");
         return;
     }
 
@@ -105,7 +106,7 @@ void LoginDialog::registerUser() {
     if (user) {
         accept();
     } else {
-        QMessageBox::warning(this, "Error", "Registration failed. Username may be taken.");
+        QMessageBox::warning(this, "Błąd", "Rejestracja nie powiodła się. Nazwa użytkownika może być zajęta.");
     }
 }
 

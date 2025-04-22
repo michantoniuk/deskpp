@@ -64,7 +64,7 @@ bool UserRepository::validateCredentials(const std::string &username, const std:
 }
 
 std::string UserRepository::hashPassword(const std::string &password) {
-    // Simple hashing for demonstration
+    // Proste hashowanie dla demonstracji
     std::hash<std::string> hasher;
     return std::to_string(hasher(password));
 }

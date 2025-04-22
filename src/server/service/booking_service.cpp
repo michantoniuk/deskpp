@@ -16,8 +16,6 @@ json BookingService::getAllBuildings() {
 
     for (const auto &building: buildings) {
         auto buildingJson = building.toJson();
-        LOG_INFO("Server sending building {} with {} floors",
-                 building.getId(), building.getNumFloors());
         array.push_back(buildingJson);
     }
 
@@ -31,7 +29,7 @@ json BookingService::getAllDesks() {
     for (const auto &desk: desks) {
         json deskJson = desk.toJson();
 
-        // Add bookings
+        // Dodaj rezerwacje
         auto bookings = _bookingRepo.findByDeskId(desk.getId());
         json bookingsArray = json::array();
         for (const auto &booking: bookings) {
@@ -51,7 +49,7 @@ json BookingService::getDesksByBuilding(int buildingId) {
     for (const auto &desk: desks) {
         json deskJson = desk.toJson();
 
-        // Add bookings
+        // Dodaj rezerwacje
         auto bookings = _bookingRepo.findByDeskId(desk.getId());
         json bookingsArray = json::array();
         for (const auto &booking: bookings) {
@@ -74,17 +72,17 @@ json BookingService::getBookingsForDesk(int deskId, const std::string &dateFrom,
 }
 
 json BookingService::addBooking(int deskId, int userId, const std::string &dateFrom, const std::string &dateTo) {
-    // Check if desk exists
+    // Sprawdź czy biurko istnieje
     if (!_deskRepo.findById(deskId)) {
-        return errorResponse("Desk not found");
+        return errorResponse("Nie znaleziono biurka");
     }
 
-    // Check for overlapping bookings
+    // Sprawdź czy nie ma nakładających się rezerwacji
     if (_bookingRepo.hasOverlappingBooking(deskId, dateFrom, dateTo)) {
-        return errorResponse("Desk already booked for this period");
+        return errorResponse("Biurko jest już zarezerwowane na ten okres");
     }
 
-    // Create booking
+    // Utwórz rezerwację
     Booking booking;
     booking.setDeskId(deskId);
     booking.setUserId(userId);
@@ -95,12 +93,12 @@ json BookingService::addBooking(int deskId, int userId, const std::string &dateF
 }
 
 json BookingService::cancelBooking(int bookingId) {
-    // Check if exists
+    // Sprawdź czy istnieje
     if (!_repository.findById(bookingId)) {
-        return errorResponse("Booking not found");
+        return errorResponse("Nie znaleziono rezerwacji");
     }
     _repository.remove(bookingId);
-    return successResponse({{"message", "Booking canceled"}});
+    return successResponse({{"message", "Rezerwacja anulowana"}});
 }
 
 json BookingService::getDesksByBuildingAndFloor(int buildingId, int floor) {
@@ -108,14 +106,14 @@ json BookingService::getDesksByBuildingAndFloor(int buildingId, int floor) {
     json array = json::array();
 
     for (const auto &desk: desks) {
-        // Filter by floor
+        // Filtruj po piętrze
         if (desk.getFloor() != floor) {
             continue;
         }
 
         json deskJson = desk.toJson();
 
-        // Add bookings
+        // Dodaj rezerwacje
         auto bookings = _bookingRepo.findByDeskId(desk.getId());
         json bookingsArray = json::array();
         for (const auto &booking: bookings) {
@@ -129,10 +127,10 @@ json BookingService::getDesksByBuildingAndFloor(int buildingId, int floor) {
 }
 
 json BookingService::getFloorsByBuilding(int buildingId) {
-    // Check if building exists
+    // Sprawdź czy budynek istnieje
     auto buildingOpt = _buildingRepo.findById(buildingId);
     if (!buildingOpt) {
-        return errorResponse("Building not found");
+        return errorResponse("Nie znaleziono budynku");
     }
 
     Building building = *buildingOpt;

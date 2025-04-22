@@ -6,12 +6,12 @@ UserService::UserService(UserRepository &userRepository)
 
 json UserService::registerUser(const std::string &username, const std::string &password,
                                const std::string &email) {
-    // Check if user exists
+    // Sprawdź czy użytkownik istnieje
     if (_userRepo.findByUsername(username) || _userRepo.findByEmail(email)) {
-        return errorResponse("Username or email already exists");
+        return errorResponse("Nazwa użytkownika lub email już istnieje");
     }
 
-    // Create user
+    // Utwórz użytkownika
     User user;
     user.setUsername(username);
     user.setEmail(email);
@@ -22,18 +22,18 @@ json UserService::registerUser(const std::string &username, const std::string &p
 }
 
 json UserService::loginUser(const std::string &username, const std::string &password) {
-    // Hash password
+    // Generuj hash hasła
     std::string passwordHash = hashPassword(password);
 
-    // Check credentials
+    // Sprawdź dane logowania
     if (!_userRepo.validateCredentials(username, passwordHash)) {
-        return errorResponse("Invalid username or password");
+        return errorResponse("Nieprawidłowa nazwa użytkownika lub hasło");
     }
 
-    // Get user
+    // Pobierz użytkownika
     auto user = _userRepo.findByUsername(username);
     if (!user) {
-        return errorResponse("User not found");
+        return errorResponse("Nie znaleziono użytkownika");
     }
 
     return successResponse({{"user", user->toJson()}});

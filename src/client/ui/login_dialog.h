@@ -7,30 +7,54 @@
 #include <QStackedWidget>
 #include "../net/api_client.h"
 
+/**
+ * @class LoginDialog
+ * @brief Dialog logowania i rejestracji użytkownika.
+ *
+ * Umożliwia logowanie istniejących użytkowników oraz rejestrację nowych kont.
+ * Wykorzystuje interfejs z zakładkami do przełączania między logowaniem i rejestracją.
+ */
 class LoginDialog : public QDialog {
     Q_OBJECT
 
 public:
+    /**
+     * @brief Konstruktor
+     * @param apiClient Referencja do klienta API
+     * @param parent Obiekt rodzica (opcjonalny)
+     */
     explicit LoginDialog(ApiClient &apiClient, QWidget *parent = nullptr);
 
 private slots:
+    /**
+     * @brief Obsługuje logowanie użytkownika
+     */
     void login();
 
+    /**
+     * @brief Obsługuje rejestrację nowego użytkownika
+     */
     void registerUser();
 
+    /**
+     * @brief Przełącza na widok rejestracji
+     */
     void switchToRegister();
 
+    /**
+     * @brief Przełącza na widok logowania
+     */
     void switchToLogin();
 
 private:
     ApiClient &apiClient;
     QStackedWidget *stack;
 
-    // Login page
+    // Strona logowania
     QLineEdit *usernameEdit;
     QLineEdit *passwordEdit;
 
-    // Register page
+    // Strona rejestracji
     QLineEdit *regUsernameEdit;
     QLineEdit *regPasswordEdit;
     QLineEdit *regEmailEdit;

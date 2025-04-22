@@ -8,7 +8,7 @@ crow::response UserController::registerUser(const crow::request &req) {
     try {
         auto params = validateRequest(req, {"username", "password", "email"});
         if (!params) {
-            return errorResponse(400, "Missing required fields");
+            return errorResponse(400, "Brakujące wymagane pola");
         }
 
         std::string username = (*params)["username"].get<std::string>();
@@ -21,7 +21,7 @@ crow::response UserController::registerUser(const crow::request &req) {
         }
         return successResponse(result);
     } catch (const std::exception &ex) {
-        return errorResponse(500, "Server error");
+        return errorResponse(500, "Błąd serwera");
     }
 }
 
@@ -29,7 +29,7 @@ crow::response UserController::loginUser(const crow::request &req) {
     try {
         auto params = validateRequest(req, {"username", "password"});
         if (!params) {
-            return errorResponse(400, "Missing required fields");
+            return errorResponse(400, "Brakujące wymagane pola");
         }
 
         std::string username = (*params)["username"].get<std::string>();
@@ -41,6 +41,6 @@ crow::response UserController::loginUser(const crow::request &req) {
         }
         return successResponse(result);
     } catch (const std::exception &ex) {
-        return errorResponse(500, "Server error");
+        return errorResponse(500, "Błąd serwera");
     }
 }

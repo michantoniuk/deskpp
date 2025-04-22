@@ -12,9 +12,9 @@ BookingView::BookingView(QWidget *parent, ApiClient &apiClient)
     : QMainWindow(parent), apiClient(apiClient), selectedDate(QDate::currentDate()) {
     setupUi();
     setupMenus();
-    setWindowTitle("DeskPP - Desk Booking System");
+    setWindowTitle("DeskPP - System rezerwacji biurek");
 
-    // Connect signals
+    // Połącz sygnały
     connect(&apiClient, &ApiClient::networkError, this, &BookingView::handleNetworkError);
 }
 
@@ -27,11 +27,11 @@ void BookingView::setupUi() {
     setCentralWidget(central);
     auto mainLayout = new QVBoxLayout(central);
 
-    // Top section with calendar and options
+    // Górna sekcja z kalendarzem i opcjami
     auto topLayout = new QHBoxLayout();
 
-    // Calendar panel
-    auto calendarPanel = new QGroupBox("Select Date", this);
+    // Panel kalendarza
+    auto calendarPanel = new QGroupBox("Wybierz datę", this);
     auto calendarLayout = new QVBoxLayout(calendarPanel);
     calendar = new QCalendarWidget(this);
     calendar->setSelectedDate(selectedDate);
@@ -39,13 +39,13 @@ void BookingView::setupUi() {
     calendarLayout->addWidget(calendar);
     topLayout->addWidget(calendarPanel);
 
-    // Options panel
-    auto optionsPanel = new QGroupBox("Options", this);
+    // Panel opcji
+    auto optionsPanel = new QGroupBox("Opcje", this);
     auto optionsLayout = new QVBoxLayout(optionsPanel);
 
-    // Building selection
+    // Wybór budynku
     auto bldgLayout = new QHBoxLayout();
-    bldgLayout->addWidget(new QLabel("Building:", this));
+    bldgLayout->addWidget(new QLabel("Budynek:", this));
     buildingSelect = new QComboBox(this);
     buildingSelect->setMinimumWidth(250);
     buildingSelect->setSizeAdjustPolicy(QComboBox::AdjustToContents);
@@ -53,9 +53,9 @@ void BookingView::setupUi() {
     bldgLayout->addWidget(buildingSelect);
     optionsLayout->addLayout(bldgLayout);
 
-    // Floor selection
+    // Wybór piętra
     auto floorLayout = new QHBoxLayout();
-    floorLayout->addWidget(new QLabel("Floor:", this));
+    floorLayout->addWidget(new QLabel("Piętro:", this));
     floorSelect = new QComboBox(this);
     floorSelect->setMinimumWidth(250);
     floorSelect->setSizeAdjustPolicy(QComboBox::AdjustToContents);
@@ -63,27 +63,27 @@ void BookingView::setupUi() {
     floorLayout->addWidget(floorSelect);
     optionsLayout->addLayout(floorLayout);
 
-    // Info labels
-    infoLabel = new QLabel(QString("Desk plan for %1").arg(selectedDate.toString("MM/dd/yyyy")), this);
+    // Etykiety informacyjne
+    infoLabel = new QLabel(QString("Plan biurek na %1").arg(selectedDate.toString("dd.MM.yyyy")), this);
     optionsLayout->addWidget(infoLabel);
 
-    // User label
-    userLabel = new QLabel("Not logged in", this);
+    // Etykieta użytkownika
+    userLabel = new QLabel("Nie zalogowano", this);
     optionsLayout->addWidget(userLabel);
 
-    // Add refresh button
-    refreshButton = new QPushButton("Refresh Desk Status", this);
+    // Przycisk odświeżania
+    refreshButton = new QPushButton("Odśwież status biurek", this);
     connect(refreshButton, &QPushButton::clicked, this, &BookingView::refreshView);
     optionsLayout->addWidget(refreshButton);
 
     topLayout->addWidget(optionsPanel);
     mainLayout->addLayout(topLayout);
 
-    // Desk map panel
-    auto mapPanel = new QGroupBox("Desk Map", this);
+    // Panel mapy biurek
+    auto mapPanel = new QGroupBox("Mapa biurek", this);
     auto mapLayout = new QVBoxLayout(mapPanel);
 
-    // Scrollable desk map
+    // Przewijalna mapa biurek
     deskMapLayout = new QGridLayout();
     deskMapContainer = new QWidget(this);
     deskMapContainer->setLayout(deskMapLayout);
@@ -97,23 +97,26 @@ void BookingView::setupUi() {
 }
 
 void BookingView::setupMenus() {
-    // User menu
-    auto userMenu = menuBar()->addMenu("User");
+    // Menu użytkownika
+    userMenu = menuBar()->addMenu("Użytkownik");
 
-    auto loginAction = new QAction("Login", this);
+    loginAction = new QAction("Zaloguj", this);
     connect(loginAction, &QAction::triggered, this, &BookingView::showLoginDialog);
     userMenu->addAction(loginAction);
 
-    auto logoutAction = new QAction("Logout", this);
+    logoutAction = new QAction("Wyloguj", this);
     connect(logoutAction, &QAction::triggered, this, &BookingView::handleUserLogout);
     userMenu->addAction(logoutAction);
+
+    // Początkowy stan przycisków
+    updateMenuVisibility();
 }
 
 bool BookingView::checkLogin(const QString &action) {
     if (!apiClient.isLoggedIn()) {
         if (!action.isEmpty()) {
-            QMessageBox::information(this, "Login Required",
-                                     QString("You need to log in to %1").arg(action));
+            QMessageBox::information(this, "Wymagane logowanie",
+                                     QString("Musisz się zalogować, aby %1").arg(action));
         }
         showLoginDialog();
         return false;
@@ -123,7 +126,7 @@ bool BookingView::checkLogin(const QString &action) {
 
 void BookingView::dateChanged(const QDate &date) {
     selectedDate = date;
-    infoLabel->setText(QString("Desk plan for %1").arg(date.toString("MM/dd/yyyy")));
+    infoLabel->setText(QString("Plan biurek na %1").arg(date.toString("dd.MM.yyyy")));
     updateDeskMap();
 }
 
@@ -132,11 +135,11 @@ void BookingView::buildingChanged(int index) {
         selectedBuildingId = buildingSelect->itemData(index).toInt();
         loadFloors(selectedBuildingId);
 
-        // Only refresh view if a specific building is selected
+        // Odśwież widok tylko jeśli wybrano konkretny budynek
         if (selectedBuildingId > 0) {
             refreshView();
         } else {
-            // Clear desk display if "Select Building" is chosen
+            // Wyczyść widok biurek jeśli wybrano "Wybierz budynek"
             desks.clear();
             updateDeskMap();
         }
@@ -147,12 +150,11 @@ void BookingView::floorChanged(int index) {
     if (index >= 0 && index < floorSelect->count()) {
         selectedFloor = floorSelect->itemData(index).toInt();
 
-        // Only refresh if both building and floor are selected
+        // Odśwież tylko jeśli wybrano budynek i piętro
         if (selectedBuildingId > 0 && selectedFloor > 0) {
-            LOG_INFO("Selected floor changed to {} for building {}", selectedFloor, selectedBuildingId);
             refreshView();
         } else {
-            // Clear desk display if "Select Floor" is chosen
+            // Wyczyść widok biurek jeśli wybrano "Wybierz piętro"
             desks.clear();
             updateDeskMap();
         }
@@ -162,11 +164,11 @@ void BookingView::floorChanged(int index) {
 void BookingView::loadBuildings() {
     buildingSelect->clear();
 
-    // Get buildings from server
+    // Pobierz budynki z serwera
     buildings = apiClient.getBuildings();
 
-    // Add buildings to combo box
-    buildingSelect->addItem("Select Building", -1);
+    // Dodaj budynki do combobox
+    buildingSelect->addItem("Wybierz budynek", -1);
 
     for (const auto &building: buildings) {
         QString displayText = QString::fromStdString(building.getName());
@@ -180,65 +182,68 @@ void BookingView::loadBuildings() {
 void BookingView::loadFloors(int buildingId) {
     floorSelect->clear();
 
-    // Add "Select Floor" item at the top
-    floorSelect->addItem("Select Floor", -1);
+    // Dodaj "Wybierz piętro" na górze listy
+    floorSelect->addItem("Wybierz piętro", -1);
 
-    // Skip if "Select Building" is selected
+    // Pomiń jeśli wybrano "Wybierz budynek"
     if (buildingId <= 0) {
         selectedFloor = -1;
         return;
     }
 
-    // Find selected building
+    // Znajdź wybrany budynek
     auto it = std::find_if(buildings.begin(), buildings.end(),
                            [buildingId](const Building &building) {
                                return building.getId() == buildingId;
                            });
 
     if (it != buildings.end()) {
-        // Get numFloors from the building and create floor items
+        // Pobierz liczbę pięter z budynku i utwórz elementy listy
         int numFloors = it->getNumFloors();
-        LOG_INFO("Loading floors for building {} - found {} floors", buildingId, numFloors);
 
         for (int floor = 1; floor <= numFloors; floor++) {
-            floorSelect->addItem(QString("Floor %1").arg(floor), floor);
-            LOG_INFO("Added Floor {} to dropdown", floor);
+            floorSelect->addItem(QString("Piętro %1").arg(floor), floor);
         }
-    } else {
-        LOG_WARNING("Building {} not found in local data", buildingId);
     }
 }
 
 void BookingView::refreshView() {
-    // Update login status in UI
+    // Aktualizacja statusu logowania w UI
     if (apiClient.isLoggedIn() && apiClient.getCurrentUser()) {
-        userLabel->setText(QString("Logged in as: %1")
+        userLabel->setText(QString("Zalogowano jako: %1")
             .arg(QString::fromStdString(apiClient.getCurrentUser()->getUsername())));
     } else {
-        userLabel->setText("Not logged in");
+        userLabel->setText("Nie zalogowano");
     }
 
-    // Load buildings if needed
+    // Aktualizuj widoczność opcji menu
+    updateMenuVisibility();
+
+    // Załaduj budynki jeśli potrzeba
     if (buildings.empty()) {
         loadBuildings();
     }
 
-    // Always clear existing desks to get fresh data
+    // Zawsze wyczyść istniejące biurka, aby pobrać świeże dane
     desks.clear();
 
-    // Only try to load desks if user is logged in AND building/floor are selected
+    // Pobierz biurka tylko jeśli użytkownik jest zalogowany ORAZ wybrano budynek/piętro
     if (apiClient.isLoggedIn() && selectedBuildingId > 0 && selectedFloor > 0) {
-        LOG_INFO("Loading desks for building {} floor {}", selectedBuildingId, selectedFloor);
         desks = apiClient.getDesks(selectedBuildingId, selectedFloor);
-        LOG_INFO("Loaded {} desks", desks.size());
     }
 
-    // Update desk display
+    // Aktualizuj widok biurek
     updateDeskMap();
 }
 
+void BookingView::updateMenuVisibility() {
+    bool isLoggedIn = apiClient.isLoggedIn();
+    loginAction->setVisible(!isLoggedIn);
+    logoutAction->setVisible(isLoggedIn);
+}
+
 void BookingView::updateDeskMap() {
-    // Clear existing items
+    // Wyczyść istniejące elementy
     while (QLayoutItem *item = deskMapLayout->takeAt(0)) {
         if (QWidget *widget = item->widget()) {
             widget->deleteLater();
@@ -246,48 +251,47 @@ void BookingView::updateDeskMap() {
         delete item;
     }
 
-    // Check login status first
+    // Sprawdź status logowania
     if (!apiClient.isLoggedIn()) {
-        auto loginButton = new QPushButton("Login to view desks", this);
+        auto loginButton = new QPushButton("Zaloguj się, aby zobaczyć biurka", this);
         connect(loginButton, &QPushButton::clicked, this, &BookingView::showLoginDialog);
         deskMapLayout->addWidget(loginButton, 0, 0);
         return;
     }
 
-    // If building or floor not selected, show prompt
+    // Jeśli nie wybrano budynku lub piętra, pokaż komunikat
     if (selectedBuildingId <= 0 || selectedFloor <= 0) {
-        auto promptLabel = new QLabel("Please select a building and floor to view available desks", this);
+        auto promptLabel = new QLabel("Wybierz budynek i piętro, aby zobaczyć dostępne biurka", this);
         promptLabel->setAlignment(Qt::AlignCenter);
         promptLabel->setWordWrap(true);
         deskMapLayout->addWidget(promptLabel, 0, 0);
         return;
     }
 
-    // No desks available for this combination
+    // Brak biurek dla tej kombinacji
     if (desks.empty()) {
-        auto noDesksLabel = new QLabel(QString("No desks found for Building ID %1, Floor %2")
+        auto noDesksLabel = new QLabel(QString("Nie znaleziono biurek dla Budynku ID %1, Piętro %2")
                                        .arg(selectedBuildingId).arg(selectedFloor), this);
         noDesksLabel->setAlignment(Qt::AlignCenter);
         noDesksLabel->setWordWrap(true);
         deskMapLayout->addWidget(noDesksLabel, 0, 0);
-        LOG_WARNING("No desks found for building {} floor {}", selectedBuildingId, selectedFloor);
         return;
     }
 
-    // Display the desks
+    // Wyświetl biurka
     int currentUserId = apiClient.getCurrentUser() ? apiClient.getCurrentUser()->getId() : -1;
 
     for (size_t i = 0; i < desks.size(); ++i) {
         const auto &desk = desks[i];
         bool isBooked = desk.isBookedOnDate(selectedDate);
 
-        // Create button
+        // Utwórz przycisk
         auto button = new QPushButton(this);
         button->setMinimumSize(100, 80);
 
-        // Button with floor info
+        // Przycisk z informacją o piętrze
         QString deskName = QString::fromStdString(desk.getName());
-        QString floorInfo = QString("Floor %1").arg(desk.getFloor());
+        QString floorInfo = QString("Piętro %1").arg(desk.getFloor());
 
         if (isBooked) {
             auto bookings = desk.getBookingsContainingDate(selectedDate);
@@ -296,35 +300,35 @@ void BookingView::updateDeskMap() {
                 int bookingUserId = booking.getUserId();
 
                 if (currentUserId == bookingUserId) {
-                    // Blue for user's own bookings
+                    // Niebieski dla własnych rezerwacji
                     button->setStyleSheet("background-color: #2196F3; color: white;");
-                    button->setText(deskName + "\n" + floorInfo + "\nBooked by you");
+                    button->setText(deskName + "\n" + floorInfo + "\nZarezerwowane przez Ciebie");
                 } else {
-                    // Red for bookings by others
+                    // Czerwony dla rezerwacji innych osób
                     button->setStyleSheet("background-color: #F44336; color: white;");
-                    button->setText(deskName + "\n" + floorInfo + "\nBooked by User #" +
+                    button->setText(deskName + "\n" + floorInfo + "\nZarezerwowane przez Użytkownika #" +
                                     QString::number(bookingUserId));
                 }
             }
         } else {
-            // Green for available desks
-            button->setText(deskName + "\n" + floorInfo + "\nAvailable");
+            // Zielony dla dostępnych biurek
+            button->setText(deskName + "\n" + floorInfo + "\nDostępne");
             button->setStyleSheet("background-color: #4CAF50; color: white;");
         }
 
-        // Store desk index for click handler
+        // Przechowaj indeks biurka dla obsługi kliknięcia
         button->setProperty("index", static_cast<int>(i));
         button->setProperty("is_booked", isBooked);
         connect(button, &QPushButton::clicked, this, &BookingView::deskClicked);
 
-        // Use default grid layout - 4 columns
+        // Użyj domyślnego układu siatki - 4 kolumny
         deskMapLayout->addWidget(button, i / 4, i % 4);
     }
 }
 
 void BookingView::deskClicked() {
-    // Check login first
-    if (!checkLogin("view desk details")) {
+    // Najpierw sprawdź logowanie
+    if (!checkLogin("zobaczyć szczegóły biurka")) {
         return;
     }
 
@@ -334,10 +338,10 @@ void BookingView::deskClicked() {
     int deskIndex = button->property("index").toInt();
     if (deskIndex < 0 || deskIndex >= static_cast<int>(desks.size())) return;
 
-    // Show booking dialog with current desk data
+    // Pokaż dialog rezerwacji z aktualnymi danymi biurka
     BookingDialog dialog(desks[deskIndex], selectedDate, apiClient, this);
     if (dialog.exec() == QDialog::Accepted) {
-        // Refresh after booking action
+        // Odśwież po zmianie rezerwacji
         refreshView();
     }
 }
@@ -356,8 +360,8 @@ void BookingView::handleUserLogout() {
 
 void BookingView::handleNetworkError(const QString &error) {
     if (error.contains("connection") || error.contains("timeout") || error.contains("server")) {
-        QMessageBox::warning(this, "Network Error", error);
+        QMessageBox::warning(this, "Błąd sieci", error);
     } else {
-        LOG_ERROR("Network error: {}", error.toStdString());
+        LOG_ERROR("Błąd sieci: {}", error.toStdString());
     }
 }

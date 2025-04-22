@@ -9,20 +9,20 @@ int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     app.setApplicationName("DeskPP");
 
-    // Load settings and init logger
+    // Wczytaj ustawienia i inicjalizuj logger
     auto &settings = AppSettings::getInstance();
     settings.parseCommandLine(app);
     initLogger("DeskPP", settings.isVerboseLogging());
 
-    // Create API client
+    // Utwórz klienta API
     ApiClient apiClient(settings.getServerAddress(), settings.getServerPort());
 
-    // Create main window
+    // Utwórz główne okno
     BookingView window(nullptr, apiClient);
     window.resize(800, 600);
     window.show();
 
-    // Load initial data if user is logged in
+    // Załaduj początkowe dane jeśli użytkownik jest zalogowany
     window.refreshView();
 
     return app.exec();

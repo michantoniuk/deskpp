@@ -14,37 +14,37 @@
 #include "common/app_settings.h"
 
 int main(int argc, char *argv[]) {
-    // Load settings
+    // Wczytaj ustawienia
     auto &settings = AppSettings::getInstance();
     settings.parseCommandLine(argc, argv);
 
-    // Initialize logger
+    // Inicjalizuj logger
     initLogger("DeskPP", settings.isVerboseLogging());
-    LOG_INFO("Starting DeskPP server on port {}", settings.getPort());
+    LOG_INFO("Uruchamianie serwera DeskPP na porcie {}", settings.getPort());
 
     try {
-        // Create database connection
+        // Utwórz połączenie z bazą danych
         auto db = std::make_shared<SQLite::Database>(
             settings.getDatabasePath(),
             SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE
         );
 
-        // Check if tables need to be created
+        // Sprawdź czy tabele muszą zostać utworzone
         bool tableExists = false;
         try {
             SQLite::Statement query(*db, "SELECT name FROM sqlite_master WHERE type='table' AND name='buildings'");
             tableExists = query.executeStep();
         } catch (...) {
-            // Ignore exceptions during check
+            // Ignoruj wyjątki podczas sprawdzania
         }
 
-        // Initialize database if needed
+        // Inicjalizuj bazę danych jeśli potrzeba
         if (!tableExists) {
-            LOG_INFO("Creating database schema...");
+            LOG_INFO("Tworzenie schematu bazy danych...");
 
             db->exec("BEGIN TRANSACTION;");
 
-            // Create tables
+            // Utwórz tabele
             db->exec("CREATE TABLE buildings ("
                 "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 "name TEXT NOT NULL,"
@@ -80,10 +80,10 @@ int main(int argc, char *argv[]) {
 
             db->exec("COMMIT;");
 
-            // Add sample data
+            // Dodaj przykładowe dane
             db->exec("BEGIN TRANSACTION;");
 
-            // Add buildings
+            // Dodaj budynki
             db->exec("INSERT INTO buildings (name, address, num_floors) VALUES "
                 "('Budynek A', 'ul. Krakowska 123, Warszawa', 2),"
                 "('Budynek B', 'ul. Krakowska 125, Warszawa', 3),"
@@ -168,7 +168,7 @@ int main(int argc, char *argv[]) {
                 }
             }
 
-            // Add users with simple password hashing
+            // Dodaj użytkowników z prostym haszowaniem haseł
             std::string passwordHash = std::to_string(std::hash<std::string>{}("password"));
             db->exec("INSERT INTO users (username, password_hash, email) VALUES "
                      "('admin', '" + passwordHash + "', 'admin@example.com'),"
@@ -179,33 +179,33 @@ int main(int argc, char *argv[]) {
             db->exec("COMMIT;");
         }
 
-        // Initialize repositories
+        // Inicjalizuj repozytoria
         UserRepository userRepository(db);
         BuildingRepository buildingRepository(db);
         DeskRepository deskRepository(db);
         BookingRepository bookingRepository(db);
 
-        // Initialize services
+        // Inicjalizuj serwisy
         UserService userService(userRepository);
         BookingService bookingService(buildingRepository, deskRepository, bookingRepository);
 
-        // Initialize controllers
+        // Inicjalizuj kontrolery
         BookingController bookingController(bookingService);
         UserController userController(userService);
 
-        // Initialize Crow server
+        // Inicjalizuj serwer Crow
         crow::SimpleApp app;
 
-        // Register API routes
+        // Zarejestruj trasy API
         registerRoutes(app, bookingController, userController);
 
-        // Start server
-        LOG_INFO("Server listening on port {}", settings.getPort());
+        // Uruchom serwer
+        LOG_INFO("Serwer nasłuchuje na porcie {}", settings.getPort());
         app.port(settings.getPort()).multithreaded().run();
     } catch (const std::exception &e) {
-        LOG_ERROR("Error: {}", e.what());
+        LOG_ERROR("Błąd: {}", e.what());
         return 1;
     }
 
-    return 0; // Add a return statement for the success case
+    return 0;
 }

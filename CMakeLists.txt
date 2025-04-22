@@ -1,26 +1,26 @@
 cmake_minimum_required(VERSION 3.14)
 project(DeskPP LANGUAGES CXX)
 
-# Use C++20
+# Użyj C++20
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Find Qt packages
+# Znajdź pakiety Qt
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# Dependencies
+# Zależności
 include(FetchContent)
 
-# JSON library for API communication
+# Biblioteka JSON dla komunikacji API
 FetchContent_Declare(json
         URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
 )
 FetchContent_MakeAvailable(json)
 
-# spdlog for logging
+# spdlog dla logowania
 FetchContent_Declare(spdlog
         GIT_REPOSITORY https://github.com/gabime/spdlog.git
         GIT_TAG v1.10.0
@@ -28,7 +28,7 @@ FetchContent_Declare(spdlog
 set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "")
 FetchContent_MakeAvailable(spdlog)
 
-# SQLiteCpp for database operations
+# SQLiteCpp dla operacji bazodanowych
 FetchContent_Declare(sqlitecpp
         GIT_REPOSITORY https://github.com/SRombauts/SQLiteCpp.git
         GIT_TAG 3.3.1
@@ -38,17 +38,17 @@ set(SQLITECPP_RUN_CPPCHECK OFF CACHE BOOL "")
 set(SQLITECPP_INTERNAL_SQLITE OFF CACHE BOOL "")
 FetchContent_MakeAvailable(sqlitecpp)
 
-# Find SQLite3 for server
+# Znajdź SQLite3 dla serwera
 find_package(SQLite3 REQUIRED)
 
-# Crow for REST API
+# Crow dla REST API
 FetchContent_Declare(crow
         GIT_REPOSITORY https://github.com/CrowCpp/Crow.git
         GIT_TAG v1.0+5
 )
 FetchContent_MakeAvailable(crow)
 
-# Common include directories
+# Wspólne katalogi include
 include_directories(
         ${CMAKE_SOURCE_DIR}/src
         ${json_SOURCE_DIR}/include
@@ -56,7 +56,7 @@ include_directories(
         ${SQLite3_INCLUDE_DIRS}
 )
 
-# Common sources
+# Wspólne źródła
 set(COMMON_SOURCES
         src/common/logger.h
         src/common/app_settings.h
@@ -72,7 +72,7 @@ set(COMMON_SOURCES
         src/common/model/booking.cpp
 )
 
-# Client sources
+# Źródła klienta
 set(CLIENT_SOURCES
         ${COMMON_SOURCES}
         src/client/ui/booking_view.h
@@ -86,7 +86,7 @@ set(CLIENT_SOURCES
         src/client/main.cpp
 )
 
-# Server sources
+# Źródła serwera
 set(SERVER_SOURCES
         ${COMMON_SOURCES}
         src/server/repository/repository.h
@@ -114,7 +114,7 @@ set(SERVER_SOURCES
         src/server/main.cpp
 )
 
-# Build client
+# Buduj klienta
 add_executable(deskpp_client ${CLIENT_SOURCES})
 target_link_libraries(deskpp_client PRIVATE
         Qt6::Core
@@ -124,7 +124,7 @@ target_link_libraries(deskpp_client PRIVATE
         spdlog::spdlog
 )
 
-# Build server
+# Buduj serwer
 add_executable(deskpp_server ${SERVER_SOURCES})
 target_link_libraries(deskpp_server PRIVATE
         nlohmann_json::nlohmann_json
