@@ -1,6 +1,6 @@
-# DeskPP - System Rezerwacji Biurek
+# Biurko++ - System Rezerwacji Biurek
 
-DeskPP to system do zarządzania rezerwacjami biurek w środowisku biurowym. Aplikacja umożliwia rezerwację biurek w różnych budynkach i na różnych piętrach, co ułatwia organizację pracy w biurze.
+Biurko++ to system do zarządzania rezerwacjami biurek w środowisku biurowym. Aplikacja umożliwia rezerwację biurek w różnych budynkach i na różnych piętrach, co ułatwia organizację pracy w biurze.
 
 ## Funkcje
 
