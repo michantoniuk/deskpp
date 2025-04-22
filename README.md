@@ -12,7 +12,7 @@ Biurko++ to system do zarządzania rezerwacjami biurek w środowisku biurowym. A
 
 ## Architektura systemu
 
-DeskPP składa się z dwóch głównych komponentów:
+Biurko++ składa się z dwóch głównych komponentów:
 
 1. **Serwer** - aplikacja backend w C++ z wykorzystaniem biblioteki Crow do implementacji REST API. Serwer zarządza danymi w bazie SQLite.
 
