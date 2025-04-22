@@ -12,7 +12,7 @@ BookingView::BookingView(QWidget *parent, ApiClient &apiClient)
     : QMainWindow(parent), apiClient(apiClient), selectedDate(QDate::currentDate()) {
     setupUi();
     setupMenus();
-    setWindowTitle("DeskPP - System rezerwacji biurek");
+    setWindowTitle("Biurko++ - System rezerwacji biurek");
 
     // Połącz sygnały
     connect(&apiClient, &ApiClient::networkError, this, &BookingView::handleNetworkError);
